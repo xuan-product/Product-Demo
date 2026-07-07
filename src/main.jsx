@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ClipboardList,
   Clock3,
+  Download,
   Eye,
   Filter,
   GitBranch,
@@ -14,6 +15,7 @@ import {
   RefreshCcw,
   ShieldAlert,
   Sparkles,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import './styles.css';
@@ -175,6 +177,270 @@ const levelMeta = {
   Low: { color: '#059669', bg: '#eafaf2' },
 };
 
+const periods = ['近7天', '近30天', '近90天'];
+
+const rootCauseData = {
+  'xinghe-3': {
+    totalRisks: 51,
+    frequentRisks: 8,
+    distribution: [
+      { type: '进度风险', percent: 42, color: '#1d4ed8' },
+      { type: '质量风险', percent: 25, color: '#0f766e' },
+      { type: '客户风险', percent: 18, color: '#b45309' },
+      { type: '安全风险', percent: 10, color: '#dc2626' },
+      { type: '合规风险', percent: 5, color: '#64748b' },
+    ],
+    issues: [
+      {
+        id: 'cause-001',
+        name: '材料延期问题',
+        issueType: '进度风险',
+        count: 8,
+        latestTime: '2026-07-05',
+        stage: '采购阶段',
+        impact: '平均延期5天',
+        scope: '结构封顶、泥工进场、材料验收',
+        confidence: 0.84,
+        rootCause: '采购审批流程存在瓶颈，供应商交付时间确认滞后。',
+        trend: [2, 3, 4, 6, 8],
+        roles: ['采购经理', '项目经理', '供应商', '施工负责人'],
+        reasons: [
+          {
+            title: '采购审批流程存在瓶颈',
+            detail: '过去30天多次延期事件集中发生在采购确认阶段，审批完成时间晚于计划节点。',
+          },
+          {
+            title: '供应商反馈周期较长',
+            detail: '关联消息中多次出现“还没给准信”“最快下周”等不确定表达，交付承诺不稳定。',
+          },
+        ],
+        evidence: [
+          '采购经理：供应商说这批钢材本周可能到不了，最快下周二。',
+          'DFC：材料到货日期从 7/8 调整为待确认。',
+          '项目经理：封顶节点缓冲只有一天，不能再拖。',
+        ],
+        suggestions: ['优化采购审批流程，设置关键材料提前量', '提前确认供应商交付时间，建立备用供应商名单', '对高风险材料设置自动提醒和升级机制'],
+      },
+      {
+        id: 'cause-002',
+        name: '图纸版本不一致',
+        issueType: '质量风险',
+        count: 5,
+        latestTime: '2026-07-04',
+        stage: '施工阶段',
+        impact: '涉及3个施工区域',
+        scope: '泥工、木作、设计确认',
+        confidence: 0.78,
+        rootCause: '图纸变更同步不及时，现场与设计版本管理口径不一致。',
+        trend: [1, 2, 2, 4, 5],
+        roles: ['设计经理', '施工负责人', '资料员'],
+        reasons: [
+          { title: '变更同步链路不完整', detail: '设计更新后，现场班组仍引用旧版本图纸继续施工。' },
+          { title: '资料版本缺少统一标识', detail: '关联事件中多次出现“旧图”“最新版对不上”等描述。' },
+        ],
+        evidence: ['施工负责人：这里按旧图做了，和设计最新版对不上。', '设计经理：先别继续铺，下午我到现场确认。'],
+        suggestions: ['建立图纸版本冻结机制', '施工前增加最新版图纸确认动作', '将 DFC 变更同步到现场任务卡'],
+      },
+      {
+        id: 'cause-003',
+        name: '客户变更反复确认',
+        issueType: '客户风险',
+        count: 4,
+        latestTime: '2026-07-03',
+        stage: '样板确认',
+        impact: '影响验收口径',
+        scope: '样板间、材料选型、客户验收',
+        confidence: 0.76,
+        rootCause: '客户需求确认粒度不够，样板间变更未形成结构化确认单。',
+        trend: [1, 1, 2, 3, 4],
+        roles: ['客户经理', '设计经理', '项目经理'],
+        reasons: [
+          { title: '需求确认不够结构化', detail: '客户多次使用“再换一版”“不太对”等表达，但未沉淀为明确确认项。' },
+          { title: '变更影响未及时量化', detail: '工期和材料影响没有在客户沟通时同步确认。' },
+        ],
+        evidence: ['客户：这个颜色还是不太对，想再换一版看看。', '客户经理：昨天已经改过一次，需要重新确认工期影响。'],
+        suggestions: ['将样板间变更转为确认单', '每次变更同步展示工期和成本影响', '设定客户确认截止时间'],
+      },
+    ],
+  },
+  'yunhai-a': {
+    totalRisks: 23,
+    frequentRisks: 4,
+    distribution: [
+      { type: '进度风险', percent: 36, color: '#1d4ed8' },
+      { type: '质量风险', percent: 20, color: '#0f766e' },
+      { type: '客户风险', percent: 22, color: '#b45309' },
+      { type: '安全风险', percent: 12, color: '#dc2626' },
+      { type: '合规风险', percent: 10, color: '#64748b' },
+    ],
+    issues: [
+      {
+        id: 'cause-101',
+        name: '联调排期不稳定',
+        issueType: '进度风险',
+        count: 6,
+        latestTime: '2026-07-05',
+        stage: '机电联调',
+        impact: '可能影响月底验收',
+        scope: '消防、弱电、物业',
+        confidence: 0.79,
+        rootCause: '多方联调依赖外部确认，测试窗口未提前锁定。',
+        trend: [1, 2, 3, 4, 6],
+        roles: ['机电负责人', '物业', '项目经理'],
+        reasons: [{ title: '外部协同窗口不固定', detail: '物业反馈不稳定，消防与弱电联调资源没有提前预约。' }],
+        evidence: ['机电负责人：联动测试时间物业还没给准信。', 'PM：月底验收前必须跑完一轮。'],
+        suggestions: ['提前两周锁定联调窗口', '建立联调责任人清单', '每日同步未确认项'],
+      },
+    ],
+  },
+  beichen: {
+    totalRisks: 34,
+    frequentRisks: 6,
+    distribution: [
+      { type: '进度风险', percent: 18, color: '#1d4ed8' },
+      { type: '质量风险', percent: 16, color: '#0f766e' },
+      { type: '客户风险', percent: 12, color: '#b45309' },
+      { type: '安全风险', percent: 39, color: '#dc2626' },
+      { type: '合规风险', percent: 15, color: '#64748b' },
+    ],
+    issues: [
+      {
+        id: 'cause-201',
+        name: '夜间作业审批滞后',
+        issueType: '安全风险',
+        count: 7,
+        latestTime: '2026-07-05',
+        stage: '吊装施工',
+        impact: '存在违规施工风险',
+        scope: '安全审批、吊装班组、设备进场',
+        confidence: 0.87,
+        rootCause: '夜间作业计划与审批流程脱节，施工安排早于审批闭环。',
+        trend: [1, 3, 4, 5, 7],
+        roles: ['安全员', '班组长', '项目经理'],
+        reasons: [{ title: '审批闭环晚于施工计划', detail: '事件中同时出现“审批未完成”和“今晚设备进场”。' }],
+        evidence: ['安全员：夜间吊装审批还没下来。', '班组长：今晚设备已经安排进场。'],
+        suggestions: ['未完成审批时自动阻断夜间施工计划', '吊装作业前一天完成安全交底', '高风险作业加入红线提醒'],
+      },
+    ],
+  },
+};
+
+const departmentOptions = ['全部部门', '项目管理部', '采购组', '施工组', '客户组'];
+
+const emotionData = {
+  'xinghe-3': {
+    positiveRate: 48,
+    neutralRate: 28,
+    negativeRate: 24,
+    lastWeekNegativeRate: 10,
+    alert: '本周负面情绪上升，主要话题：进度压力、材料延迟',
+    topics: ['进度压力', '材料延迟', '返工沟通'],
+    trend: [
+      { day: '周一', positive: 58, neutral: 28, negative: 14 },
+      { day: '周二', positive: 54, neutral: 30, negative: 16 },
+      { day: '周三', positive: 50, neutral: 29, negative: 21 },
+      { day: '周四', positive: 45, neutral: 28, negative: 27 },
+      { day: '周五', positive: 41, neutral: 24, negative: 35 },
+    ],
+    teams: [
+      { name: '项目管理部', positive: 52, neutral: 30, negative: 18, status: '稳定' },
+      { name: '采购组', positive: 35, neutral: 30, negative: 35, status: '预警' },
+      { name: '施工组', positive: 46, neutral: 27, negative: 27, status: '关注' },
+      { name: '客户组', positive: 62, neutral: 24, negative: 14, status: '良好' },
+    ],
+  },
+  'yunhai-a': {
+    positiveRate: 65,
+    neutralRate: 27,
+    negativeRate: 8,
+    lastWeekNegativeRate: 12,
+    alert: '团队情绪整体稳定，负面消息占比较上周下降',
+    topics: ['验收准备', '联调安排', '客户确认'],
+    trend: [
+      { day: '周一', positive: 61, neutral: 27, negative: 12 },
+      { day: '周二', positive: 64, neutral: 25, negative: 11 },
+      { day: '周三', positive: 66, neutral: 26, negative: 8 },
+      { day: '周四', positive: 65, neutral: 28, negative: 7 },
+      { day: '周五', positive: 68, neutral: 24, negative: 8 },
+    ],
+    teams: [
+      { name: '项目管理部', positive: 68, neutral: 24, negative: 8, status: '良好' },
+      { name: '采购组', positive: 59, neutral: 31, negative: 10, status: '稳定' },
+      { name: '施工组', positive: 63, neutral: 29, negative: 8, status: '良好' },
+      { name: '客户组', positive: 70, neutral: 23, negative: 7, status: '良好' },
+    ],
+  },
+  beichen: {
+    positiveRate: 35,
+    neutralRate: 40,
+    negativeRate: 25,
+    lastWeekNegativeRate: 16,
+    alert: '安全审批与夜间作业相关讨论增加，负面情绪持续偏高',
+    topics: ['安全审批', '夜间作业', '资料压力'],
+    trend: [
+      { day: '周一', positive: 42, neutral: 42, negative: 16 },
+      { day: '周二', positive: 39, neutral: 40, negative: 21 },
+      { day: '周三', positive: 36, neutral: 41, negative: 23 },
+      { day: '周四', positive: 34, neutral: 39, negative: 27 },
+      { day: '周五', positive: 35, neutral: 40, negative: 25 },
+    ],
+    teams: [
+      { name: '项目管理部', positive: 38, neutral: 42, negative: 20, status: '关注' },
+      { name: '采购组', positive: 41, neutral: 39, negative: 20, status: '稳定' },
+      { name: '施工组', positive: 30, neutral: 38, negative: 32, status: '预警' },
+      { name: '客户组', positive: 47, neutral: 36, negative: 17, status: '稳定' },
+    ],
+  },
+};
+
+const auditData = {
+  summary: {
+    logCount: 128,
+    hiddenStats: 3,
+    configVersions: 12,
+  },
+  logs: [
+    {
+      id: 'log-001',
+      actor: '张经理',
+      role: '项目经理',
+      action: '查看风险管理报告',
+      target: 'A项目风险管理报告',
+      time: '2025-05-20 10:32',
+      scope: '仅查看汇总报告，未查看具体聊天记录',
+    },
+    {
+      id: 'log-002',
+      actor: '王涵',
+      role: '部门经理',
+      action: '下载AI根因分析报告',
+      target: '材料延期问题 - AI根因分析报告',
+      time: '2026-07-07 09:18',
+      scope: '导出报告用于项目复盘',
+    },
+    {
+      id: 'log-003',
+      actor: '系统',
+      role: '自动预警',
+      action: '推送风险预警',
+      target: '夜间吊装审批滞后',
+      time: '2026-07-06 18:05',
+      scope: '推送给项目经理与安全员',
+    },
+  ],
+  hrStats: [
+    { department: '项目管理部', people: 12, leaveRate: '8%', overtimeIndex: '中', visible: true },
+    { department: '采购组', people: 5, leaveRate: '12%', overtimeIndex: '高', visible: true },
+    { department: '设计协同组', people: 2, leaveRate: null, overtimeIndex: null, visible: false },
+    { department: '客户专项组', people: 1, leaveRate: null, overtimeIndex: null, visible: false },
+  ],
+  configs: [
+    { id: 'cfg-001', name: '差旅标准', version: 'v3.2', editor: '财务管理员', time: '2026-07-05 16:20', status: '当前版本' },
+    { id: 'cfg-002', name: '审批规则', version: 'v2.8', editor: '流程管理员', time: '2026-07-04 11:05', status: '当前版本' },
+    { id: 'cfg-003', name: '风险推送阈值', version: 'v1.6', editor: '系统管理员', time: '2026-07-01 09:40', status: '历史版本' },
+  ],
+};
+
 function countByLevel(items) {
   return items.reduce(
     (acc, item) => {
@@ -187,8 +453,13 @@ function countByLevel(items) {
 
 function App() {
   const [selectedRisk, setSelectedRisk] = useState(null);
+  const [activeModule, setActiveModule] = useState('risk');
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState(periods[1]);
+  const [selectedDepartment, setSelectedDepartment] = useState(departmentOptions[0]);
+  const [selectedCause, setSelectedCause] = useState(null);
+  const [reportCause, setReportCause] = useState(null);
   const [typeFilter, setTypeFilter] = useState('全部');
   const [levelFilter, setLevelFilter] = useState('全部');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -217,6 +488,8 @@ function App() {
     setTypeFilter('全部');
     setLevelFilter('全部');
     setSelectedRisk(null);
+    setSelectedCause(null);
+    setReportCause(null);
     setProjectPickerOpen(false);
   }
 
@@ -227,54 +500,39 @@ function App() {
   return (
     <div className="app-shell">
       <main className="phone">
-        <section className="hero-card">
-          <div className="hero-top">
-            <div>
-              <p className="eyebrow">观澜 AI Risk Feed</p>
-              <button className="project-trigger" type="button" onClick={() => setProjectPickerOpen(true)}>
-                <span>{selectedProject.name}</span>
-                <ChevronDown size={18} />
-              </button>
-              <p className="project-location">{selectedProject.location} · 项目健康度 {selectedProject.health}</p>
-            </div>
-            <div className="ai-badge">
-              <Sparkles size={16} />
-              实时识别
-            </div>
-          </div>
-          <div className="risk-summary" aria-label="风险总览">
-            <SummaryPill label="高风险" value={counts.High} tone="high" />
-            <SummaryPill label="中风险" value={counts.Medium} tone="medium" />
-            <SummaryPill label="低风险" value={counts.Low} tone="low" />
-          </div>
-          <div className="hero-foot">
-            <span>平均发现延迟 8 分钟</span>
-            <span>覆盖群聊 / DFC / 任务</span>
-          </div>
-        </section>
-
-        <section className="feed-head">
-          <div>
-            <h2>风险信息流</h2>
-            <p>{visibleRisks.length} 条 AI 输出，等待项目侧闭环</p>
-          </div>
-          <button className="icon-button" type="button" onClick={handleRefresh} aria-label="刷新风险">
-            <RefreshCcw size={18} className={refreshing ? 'spin' : ''} />
-          </button>
-        </section>
-
-        <section className="risk-feed">
-          {visibleRisks.map((risk) => (
-            <RiskCard
-              key={risk.id}
-              risk={risk}
-              action={actions[risk.id]}
-              onConfirm={() => markRisk(risk.id, 'confirmed')}
-              onDismiss={() => markRisk(risk.id, 'dismissed')}
-              onOpen={() => setSelectedRisk(risk)}
-            />
-          ))}
-        </section>
+        {activeModule === 'risk' ? (
+          <RiskFeedPage
+            selectedProject={selectedProject}
+            counts={counts}
+            visibleRisks={visibleRisks}
+            refreshing={refreshing}
+            actions={actions}
+            onProjectOpen={() => setProjectPickerOpen(true)}
+            onRefresh={handleRefresh}
+            onConfirm={(riskId) => markRisk(riskId, 'confirmed')}
+            onDismiss={(riskId) => markRisk(riskId, 'dismissed')}
+            onOpenRisk={setSelectedRisk}
+          />
+        ) : activeModule === 'root' ? (
+          <RootCausePage
+            selectedProject={selectedProject}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            onProjectOpen={() => setProjectPickerOpen(true)}
+            onOpenCause={setSelectedCause}
+          />
+        ) : activeModule === 'emotion' ? (
+          <EmotionDashboardPage
+            selectedProject={selectedProject}
+            selectedPeriod={selectedPeriod}
+            selectedDepartment={selectedDepartment}
+            onPeriodChange={setSelectedPeriod}
+            onDepartmentChange={setSelectedDepartment}
+            onProjectOpen={() => setProjectPickerOpen(true)}
+          />
+        ) : (
+          <AuditDashboardPage selectedProject={selectedProject} onProjectOpen={() => setProjectPickerOpen(true)} />
+        )}
 
         <BottomDock
           typeFilter={typeFilter}
@@ -283,6 +541,13 @@ function App() {
           onLevelChange={setLevelFilter}
           filtersOpen={filtersOpen}
           onToggleFilters={() => setFiltersOpen((value) => !value)}
+          activeModule={activeModule}
+          onModuleChange={(module) => {
+            setActiveModule(module);
+            setSelectedRisk(null);
+            setSelectedCause(null);
+            setReportCause(null);
+          }}
         />
 
         <ProjectDrawer
@@ -306,8 +571,65 @@ function App() {
             setSelectedRisk(null);
           }}
         />
+        <RootCauseDrawer cause={selectedCause} onClose={() => setSelectedCause(null)} onAnalyze={() => setReportCause(selectedCause)} />
+        <AIReportDrawer cause={reportCause} onClose={() => setReportCause(null)} />
       </main>
     </div>
+  );
+}
+
+function RiskFeedPage({ selectedProject, counts, visibleRisks, refreshing, actions, onProjectOpen, onRefresh, onConfirm, onDismiss, onOpenRisk }) {
+  return (
+    <>
+      <section className="hero-card">
+        <div className="hero-top">
+          <div>
+            <p className="eyebrow">观澜 AI Risk Feed</p>
+            <button className="project-trigger" type="button" onClick={onProjectOpen}>
+              <span>{selectedProject.name}</span>
+              <ChevronDown size={18} />
+            </button>
+            <p className="project-location">{selectedProject.location} · 项目健康度 {selectedProject.health}</p>
+          </div>
+          <div className="ai-badge">
+            <Sparkles size={16} />
+            实时识别
+          </div>
+        </div>
+        <div className="risk-summary" aria-label="风险总览">
+          <SummaryPill label="高风险" value={counts.High} tone="high" />
+          <SummaryPill label="中风险" value={counts.Medium} tone="medium" />
+          <SummaryPill label="低风险" value={counts.Low} tone="low" />
+        </div>
+        <div className="hero-foot">
+          <span>平均发现延迟 8 分钟</span>
+          <span>覆盖群聊 / DFC / 任务</span>
+        </div>
+      </section>
+
+      <section className="feed-head">
+        <div>
+          <h2>风险信息流</h2>
+          <p>{visibleRisks.length} 条 AI 输出，等待项目侧闭环</p>
+        </div>
+        <button className="icon-button" type="button" onClick={onRefresh} aria-label="刷新风险">
+          <RefreshCcw size={18} className={refreshing ? 'spin' : ''} />
+        </button>
+      </section>
+
+      <section className="risk-feed">
+        {visibleRisks.map((risk) => (
+          <RiskCard
+            key={risk.id}
+            risk={risk}
+            action={actions[risk.id]}
+            onConfirm={() => onConfirm(risk.id)}
+            onDismiss={() => onDismiss(risk.id)}
+            onOpen={() => onOpenRisk(risk)}
+          />
+        ))}
+      </section>
+    </>
   );
 }
 
@@ -366,52 +688,389 @@ function RiskCard({ risk, action, onConfirm, onDismiss, onOpen }) {
   );
 }
 
-function BottomDock({ typeFilter, levelFilter, onTypeChange, onLevelChange, filtersOpen, onToggleFilters }) {
+function RootCausePage({ selectedProject, selectedPeriod, onPeriodChange, onProjectOpen, onOpenCause }) {
+  const data = rootCauseData[selectedProject.id] ?? rootCauseData['xinghe-3'];
+  return (
+    <>
+      <section className="hero-card root-hero">
+        <div className="hero-top">
+          <div>
+            <p className="eyebrow">观澜 Root Cause</p>
+            <button className="project-trigger" type="button" onClick={onProjectOpen}>
+              <span>{selectedProject.name}</span>
+              <ChevronDown size={18} />
+            </button>
+            <p className="project-location">{selectedProject.location} · AI推测，仅供参考</p>
+          </div>
+          <div className="period-select">
+            <select value={selectedPeriod} onChange={(event) => onPeriodChange(event.target.value)} aria-label="分析周期">
+              {periods.map((period) => (
+                <option key={period}>{period}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} />
+          </div>
+        </div>
+        <div className="root-summary">
+          <MetricCard label="风险总数" value={`${data.totalRisks}个`} />
+          <MetricCard label="高频风险" value={`${data.frequentRisks}个`} />
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>风险分布</h2>
+            <p>{selectedPeriod}内不同风险类型占比</p>
+          </div>
+          <TrendingUp size={18} />
+        </div>
+        <div className="distribution-list">
+          {data.distribution.map((item) => (
+            <div className="distribution-row" key={item.type}>
+              <span>{item.type}</span>
+              <div className="distribution-track">
+                <div className="distribution-fill" style={{ width: `${item.percent}%`, background: item.color }} />
+              </div>
+              <strong>{item.percent}%</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="feed-head root-feed-head">
+        <div>
+          <h2>高频风险列表</h2>
+          <p>模拟展示出现次数超过3次的问题</p>
+        </div>
+      </section>
+
+      <section className="risk-feed">
+        {data.issues.map((issue) => (
+          <button className="cause-card" type="button" key={issue.id} onClick={() => onOpenCause(issue)}>
+            <div className="risk-card-top">
+              <span className="tag" style={{ '--tag-color': '#1d4ed8', '--tag-bg': '#e8f0ff' }}>
+                {issue.issueType}
+              </span>
+              <span className="risk-time">{issue.latestTime}</span>
+            </div>
+            <h3>{issue.name}</h3>
+            <div className="cause-grid">
+              <span>
+                <b>{issue.count}次</b>
+                出现次数
+              </span>
+              <span>
+                <b>{issue.stage}</b>
+                涉及环节
+              </span>
+              <span>
+                <b>{issue.impact}</b>
+                影响
+              </span>
+              <span>
+                <b>{Math.round(issue.confidence * 100)}%</b>
+                可信度
+              </span>
+            </div>
+            <p className="cause-root">AI推测根因：{issue.rootCause}</p>
+          </button>
+        ))}
+      </section>
+    </>
+  );
+}
+
+function MetricCard({ label, value }) {
+  return (
+    <div className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function EmotionDashboardPage({ selectedProject, selectedPeriod, selectedDepartment, onPeriodChange, onDepartmentChange, onProjectOpen }) {
+  const data = emotionData[selectedProject.id] ?? emotionData['xinghe-3'];
+  const filteredTeams =
+    selectedDepartment === '全部部门' ? data.teams : data.teams.filter((team) => team.name === selectedDepartment);
+  const negativeDelta = data.negativeRate - data.lastWeekNegativeRate;
+  const alertTone = negativeDelta > 8 ? 'warning' : 'stable';
+
+  return (
+    <>
+      <section className="hero-card emotion-hero">
+        <div className="hero-top">
+          <div>
+            <p className="eyebrow">观澜 Team Mood</p>
+            <button className="project-trigger" type="button" onClick={onProjectOpen}>
+              <span>{selectedProject.name}</span>
+              <ChevronDown size={18} />
+            </button>
+            <p className="project-location">仅展示团队汇总，不展示个人情绪分数</p>
+          </div>
+          <div className="period-select">
+            <select value={selectedPeriod} onChange={(event) => onPeriodChange(event.target.value)} aria-label="情绪分析周期">
+              {periods.map((period) => (
+                <option key={period}>{period}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} />
+          </div>
+        </div>
+        <div className="emotion-summary">
+          <MetricCard label="正面消息" value={`${data.positiveRate}%`} />
+          <MetricCard label="负面趋势" value={`${negativeDelta > 0 ? '+' : ''}${negativeDelta}%`} />
+        </div>
+      </section>
+
+      <section className={`emotion-alert ${alertTone}`}>
+        <strong>{alertTone === 'warning' ? '情绪异常波动预警' : '团队情绪稳定'}</strong>
+        <p>{data.alert}</p>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>情绪趋势</h2>
+            <p>积极 / 中性 / 消极占比，本周 vs 上周</p>
+          </div>
+          <HeartPulse size={18} />
+        </div>
+        <div className="emotion-stack">
+          <EmotionBar label="本周" positive={data.positiveRate} neutral={data.neutralRate} negative={data.negativeRate} />
+          <EmotionBar label="上周" positive={Math.min(100, data.positiveRate + 8)} neutral={100 - Math.min(100, data.positiveRate + 8) - data.lastWeekNegativeRate} negative={data.lastWeekNegativeRate} />
+        </div>
+        <div className="topic-row">
+          {data.topics.map((topic) => (
+            <span key={topic}>{topic}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>部门/项目对比</h2>
+            <p>支持按部门筛选，展示团队汇总</p>
+          </div>
+          <div className="mini-select">
+            <select value={selectedDepartment} onChange={(event) => onDepartmentChange(event.target.value)} aria-label="部门筛选">
+              {departmentOptions.map((department) => (
+                <option key={department}>{department}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="team-list">
+          {filteredTeams.map((team) => (
+            <div className="team-card" key={team.name}>
+              <div className="team-head">
+                <strong>{team.name}</strong>
+                <span className={`status-pill ${team.status === '预警' ? 'danger' : team.status === '关注' ? 'watch' : ''}`}>{team.status}</span>
+              </div>
+              <EmotionBar label="情绪占比" positive={team.positive} neutral={team.neutral} negative={team.negative} compact />
+              <div className="team-metrics">
+                <span>正面 {team.positive}%</span>
+                <span>负面 {team.negative}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="privacy-card">
+        <ShieldAlert size={16} />
+        <span>隐私原则：本页只展示项目/部门汇总，不展示个人情绪分数。</span>
+      </section>
+    </>
+  );
+}
+
+function EmotionBar({ label, positive, neutral, negative, compact = false }) {
+  return (
+    <div className={`emotion-bar-block ${compact ? 'compact' : ''}`}>
+      <div className="emotion-bar-head">
+        <span>{label}</span>
+        <small>正 {positive}% · 中 {neutral}% · 负 {negative}%</small>
+      </div>
+      <div className="emotion-bar">
+        <span className="positive" style={{ width: `${positive}%` }} />
+        <span className="neutral" style={{ width: `${neutral}%` }} />
+        <span className="negative" style={{ width: `${negative}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function AuditDashboardPage({ selectedProject, onProjectOpen }) {
+  const [rolledBackConfig, setRolledBackConfig] = useState(null);
+
+  function exportLogs() {
+    const content = auditData.logs
+      .map((log) => `${log.time},${log.actor},${log.role},${log.action},${log.target},${log.scope}`)
+      .join('\n');
+    const blob = new Blob([`时间,操作人,角色,动作,对象,范围\n${content}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '观澜审计日志.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      <section className="hero-card audit-hero">
+        <div className="hero-top">
+          <div>
+            <p className="eyebrow">观澜 Audit Log</p>
+            <button className="project-trigger" type="button" onClick={onProjectOpen}>
+              <span>{selectedProject.name}</span>
+              <ChevronDown size={18} />
+            </button>
+            <p className="project-location">日志不可删除 · 小部门隐私保护 · 配置可回滚</p>
+          </div>
+          <div className="ai-badge">
+            <ClipboardList size={16} />
+            合规
+          </div>
+        </div>
+        <div className="audit-summary">
+          <MetricCard label="审计日志" value={`${auditData.summary.logCount}条`} />
+          <MetricCard label="隐藏统计" value={`${auditData.summary.hiddenStats}项`} />
+          <MetricCard label="配置版本" value={`${auditData.summary.configVersions}个`} />
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>审计日志</h2>
+            <p>记录谁在什么时间查看/下载/推送了哪些风险内容</p>
+          </div>
+          <button type="button" className="mini-action" onClick={exportLogs}>导出</button>
+        </div>
+        <div className="audit-log-list">
+          {auditData.logs.map((log) => (
+            <article className="audit-log-card" key={log.id}>
+              <div className="team-head">
+                <strong>{log.action}</strong>
+                <span>{log.time}</span>
+              </div>
+              <p>{log.actor} · {log.role}</p>
+              <small>{log.target}</small>
+              <em>{log.scope}</em>
+            </article>
+          ))}
+        </div>
+        <div className="privacy-card">
+          <ShieldAlert size={16} />
+          <span>审计日志不可删除，仅可按权限导出供法务/审计追溯。</span>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>HR看板隐私保护</h2>
+            <p>部门人数少于3人时自动隐藏请假率等统计</p>
+          </div>
+        </div>
+        <div className="hr-list">
+          {auditData.hrStats.map((item) => (
+            <div className={`hr-card ${item.visible ? '' : 'hidden-stat'}`} key={item.department}>
+              <div className="team-head">
+                <strong>{item.department}</strong>
+                <span className={`status-pill ${item.visible ? '' : 'danger'}`}>{item.people}人</span>
+              </div>
+              {item.visible ? (
+                <div className="team-metrics">
+                  <span>请假率 {item.leaveRate}</span>
+                  <span>加班指数 {item.overtimeIndex}</span>
+                </div>
+              ) : (
+                <p className="hidden-copy">人数不足，不展示统计</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title-row">
+          <div>
+            <h2>配置版本管理</h2>
+            <p>差旅标准、审批规则等修改后保留历史版本</p>
+          </div>
+        </div>
+        <div className="config-list">
+          {auditData.configs.map((config) => (
+            <article className="config-card" key={config.id}>
+              <div>
+                <strong>{config.name}</strong>
+                <p>{config.version} · {config.editor}</p>
+                <small>{config.time}</small>
+              </div>
+              <button type="button" className="rollback-button" onClick={() => setRolledBackConfig(config.name)}>
+                回滚
+              </button>
+            </article>
+          ))}
+        </div>
+        {rolledBackConfig && <div className="action-state">{rolledBackConfig} 已模拟回滚到上一版本</div>}
+      </section>
+    </>
+  );
+}
+
+function BottomDock({ typeFilter, levelFilter, onTypeChange, onLevelChange, filtersOpen, onToggleFilters, activeModule, onModuleChange }) {
   return (
     <footer className="bottom-dock">
-      {filtersOpen ? (
-        <div className="filter-panel">
-          <div className="select-wrap">
-            <Filter size={15} />
-            <select value={typeFilter} onChange={(event) => onTypeChange(event.target.value)} aria-label="按类型筛选">
-              {['全部', '进度', '质量', '客户', '安全', '合规'].map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} />
+      {activeModule === 'risk' &&
+        (filtersOpen ? (
+          <div className="filter-panel">
+            <div className="select-wrap">
+              <Filter size={15} />
+              <select value={typeFilter} onChange={(event) => onTypeChange(event.target.value)} aria-label="按类型筛选">
+                {['全部', '进度', '质量', '客户', '安全', '合规'].map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} />
+            </div>
+            <div className="select-wrap compact">
+              <select value={levelFilter} onChange={(event) => onLevelChange(event.target.value)} aria-label="按等级筛选">
+                {['全部', 'High', 'Medium', 'Low'].map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} />
+            </div>
+            <button type="button" className="bar-button collapse" onClick={onToggleFilters} aria-label="收起筛选">
+              收起
+            </button>
           </div>
-          <div className="select-wrap compact">
-            <select value={levelFilter} onChange={(event) => onLevelChange(event.target.value)} aria-label="按等级筛选">
-              {['全部', 'High', 'Medium', 'Low'].map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} />
-          </div>
-          <button type="button" className="bar-button collapse" onClick={onToggleFilters} aria-label="收起筛选">
-            收起
+        ) : (
+          <button type="button" className="filter-fab" onClick={onToggleFilters}>
+            <Filter size={16} />
+            筛选
           </button>
-        </div>
-      ) : (
-        <button type="button" className="filter-fab" onClick={onToggleFilters}>
-          <Filter size={16} />
-          筛选
-        </button>
-      )}
+        ))}
       <nav className="module-tabs" aria-label="观澜模块导航">
-        <button type="button" className="module-tab active">
+        <button type="button" className={`module-tab ${activeModule === 'risk' ? 'active' : ''}`} onClick={() => onModuleChange('risk')}>
           <ShieldAlert size={18} />
           <span>风险</span>
         </button>
-        <button type="button" className="module-tab">
+        <button type="button" className={`module-tab ${activeModule === 'root' ? 'active' : ''}`} onClick={() => onModuleChange('root')}>
           <GitBranch size={18} />
           <span>根因</span>
         </button>
-        <button type="button" className="module-tab">
+        <button type="button" className={`module-tab ${activeModule === 'emotion' ? 'active' : ''}`} onClick={() => onModuleChange('emotion')}>
           <HeartPulse size={18} />
           <span>情绪</span>
         </button>
-        <button type="button" className="module-tab">
+        <button type="button" className={`module-tab ${activeModule === 'audit' ? 'active' : ''}`} onClick={() => onModuleChange('audit')}>
           <ClipboardList size={18} />
           <span>审计</span>
         </button>
@@ -466,6 +1125,7 @@ function RiskDrawer({ risk, onClose, onConfirm, onDismiss }) {
   if (!risk) return null;
   const type = typeMeta[risk.type];
   const level = levelMeta[risk.level];
+  const cause = getSingleRiskCause(risk);
   return (
     <div className="drawer-layer" role="dialog" aria-modal="true">
       <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭详情" />
@@ -487,6 +1147,25 @@ function RiskDrawer({ risk, onClose, onConfirm, onDismiss }) {
         <h3>{risk.description}</h3>
         <DetailBlock title="AI 判断依据" body={risk.aiReason} />
         <DetailBlock title="风险解释" body={risk.explanation} />
+        <div className="detail-block single-cause-block">
+          <h4>根因分析</h4>
+          <div className="ai-note">AI推测，仅供参考</div>
+          <div className="single-cause-grid">
+            <span>
+              <b>{cause.primary}</b>
+              可能主因
+            </span>
+            <span>
+              <b>{cause.scope}</b>
+              影响范围
+            </span>
+          </div>
+          <p>{cause.detail}</p>
+          <div className="cause-suggestion">
+            <strong>建议动作</strong>
+            <span>{cause.suggestion}</span>
+          </div>
+        </div>
         <div className="message-list">
           <h4>关联消息</h4>
           {risk.messages.map((message) => (
@@ -499,6 +1178,167 @@ function RiskDrawer({ risk, onClose, onConfirm, onDismiss }) {
           </button>
           <button type="button" className="action-button ghost" onClick={onDismiss}>
             忽略风险
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function getSingleRiskCause(risk) {
+  const map = {
+    进度: {
+      primary: '前置依赖未锁定',
+      scope: '节点计划 / 资源排期',
+      detail: '该风险与材料、排期或外部确认有关，当前信息显示关键前置条件尚未形成确定承诺，导致后续节点缓冲被压缩。',
+      suggestion: '锁定责任人和截止时间，要求当天确认交付/排期，并准备替代方案。',
+    },
+    质量: {
+      primary: '标准同步不一致',
+      scope: '施工区域 / 返工成本',
+      detail: '该风险多由图纸、做法、验收标准不同步引发，现场继续施工可能扩大返工范围。',
+      suggestion: '暂停相关区域继续施工，确认最新版标准后再恢复，并记录影响面。',
+    },
+    客户: {
+      primary: '需求确认不充分',
+      scope: '验收口径 / 交付范围',
+      detail: '客户侧表达存在反复或不确定，说明需求边界尚未固化，后续可能引发范围变更。',
+      suggestion: '将变更点转为确认单，同步工期和成本影响，要求客户限时确认。',
+    },
+    安全: {
+      primary: '作业前置审批缺口',
+      scope: '人员安全 / 合规施工',
+      detail: '该风险涉及安全检查、审批或作业条件未闭环，若继续推进可能形成高风险操作。',
+      suggestion: '在审批和安全复检完成前阻断作业，并同步安全员复核。',
+    },
+    合规: {
+      primary: '资料闭环不完整',
+      scope: '审计资料 / 流程合规',
+      detail: '该风险与资料缺失、资质过期或流程记录不完整有关，后续可能影响审计追溯。',
+      suggestion: '补齐缺失资料并设置到期提醒，超过截止时间自动升级风险等级。',
+    },
+  };
+  return map[risk.type] ?? map.进度;
+}
+
+function RootCauseDrawer({ cause, onClose, onAnalyze }) {
+  if (!cause) return null;
+  return (
+    <div className="drawer-layer" role="dialog" aria-modal="true">
+      <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭根因详情" />
+      <section className="drawer">
+        <div className="drawer-grip" />
+        <div className="drawer-head">
+          <div>
+            <span className="tag" style={{ '--tag-color': '#1d4ed8', '--tag-bg': '#e8f0ff' }}>
+              {cause.issueType}
+            </span>
+            <span className="tag" style={{ '--tag-color': '#b45309', '--tag-bg': '#fff5db' }}>
+              高频 {cause.count}次
+            </span>
+          </div>
+          <button type="button" className="icon-button small" onClick={onClose} aria-label="关闭">
+            <X size={18} />
+          </button>
+        </div>
+        <h3>{cause.name}</h3>
+        <div className="ai-note">AI推测，仅供参考</div>
+        <DetailBlock title="问题描述" body={`${cause.name}在${cause.stage}反复出现，${cause.impact}。`} />
+        <div className="detail-block">
+          <h4>发生趋势</h4>
+          <div className="spark-bars">
+            {cause.trend.map((value, index) => (
+              <span key={`${value}-${index}`} style={{ height: `${20 + value * 7}px` }} />
+            ))}
+          </div>
+        </div>
+        <DetailBlock title="涉及角色" body={cause.roles.join(' / ')} />
+        <DetailBlock title="AI可能原因" body={cause.rootCause} />
+        <div className="message-list">
+          <h4>分析依据（关联消息/事件）</h4>
+          {cause.evidence.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+        <div className="drawer-actions">
+          <button type="button" className="action-button primary" onClick={onAnalyze}>
+            AI分析
+          </button>
+          <button type="button" className="action-button ghost" onClick={onClose}>
+            返回
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AIReportDrawer({ cause, onClose }) {
+  if (!cause) return null;
+  function downloadReport() {
+    const report = `${cause.name} - AI根因分析报告\n\nAI分析结果基于历史数据和事件模式推测，仅供参考。\n\n问题概览\n发生次数：${cause.count}次\n影响范围：${cause.scope}\n涉及阶段：${cause.stage}\n\nAI推测原因\n${cause.reasons.map((reason, index) => `${index + 1}. ${reason.title}\n${reason.detail}`).join('\n\n')}\n\n改进建议\n${cause.suggestions.map((item) => `- ${item}`).join('\n')}`;
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${cause.name}-AI根因分析报告.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="drawer-layer" role="dialog" aria-modal="true">
+      <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭AI分析报告" />
+      <section className="drawer report-drawer">
+        <div className="drawer-grip" />
+        <div className="drawer-head">
+          <div>
+            <h3>{cause.name} - AI根因分析报告</h3>
+          </div>
+          <button type="button" className="icon-button small" onClick={onClose} aria-label="关闭">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="warning-card">⚠ AI分析结果基于历史数据和事件模式推测，仅供参考</div>
+        <div className="detail-block">
+          <h4>问题概览</h4>
+          <div className="report-metrics">
+            <span>
+              <b>{cause.count}次</b>
+              发生次数
+            </span>
+            <span>
+              <b>{cause.scope}</b>
+              影响范围
+            </span>
+            <span>
+              <b>{cause.stage}</b>
+              涉及阶段
+            </span>
+          </div>
+        </div>
+        <div className="detail-block">
+          <h4>AI推测原因</h4>
+          {cause.reasons.map((reason, index) => (
+            <div className="reason-item" key={reason.title}>
+              <strong>原因{index + 1}：{reason.title}</strong>
+              <p>{reason.detail}</p>
+            </div>
+          ))}
+        </div>
+        <div className="message-list">
+          <h4>改进建议</h4>
+          {cause.suggestions.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+        <div className="drawer-actions">
+          <button type="button" className="action-button primary" onClick={downloadReport}>
+            <Download size={15} />
+            下载分析报告
+          </button>
+          <button type="button" className="action-button ghost" onClick={onClose}>
+            返回
           </button>
         </div>
       </section>
