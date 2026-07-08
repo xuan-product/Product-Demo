@@ -731,14 +731,7 @@ function RiskCard({ risk, action, onConfirm, onDismiss, onOpen }) {
 function RootCausePage({ projects, selectedProject, onProjectChange }) {
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      type: 'welcome',
-      content: '你好，我可以帮助你分析项目风险原因。基于项目风险记录，帮助你定位问题原因并生成改善建议。',
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const context = rootAssistantContext[selectedProject.id] ?? rootAssistantContext['xinghe-3'];
 
   function ask(question) {
@@ -768,20 +761,19 @@ function RootCausePage({ projects, selectedProject, onProjectChange }) {
   return (
     <section className="assistant-page">
       <header className="assistant-header">
-        <div>
-          <p className="eyebrow">AI 风险根因分析助手</p>
-          <h1>观澜 AI 根因分析</h1>
-        </div>
-        <div className="ai-badge">
-          <Sparkles size={16} />
-          助手
-        </div>
+        <h1>观澜AI根因分析</h1>
       </header>
 
       <div className="chat-area">
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} selectedProject={selectedProject} context={context} onDownload={downloadProjectReport} />
-        ))}
+        <section className="welcome-panel">
+          <h2>👋 你好</h2>
+          <p>我可以帮助你：</p>
+          <ul>
+            <li>分析项目风险原因</li>
+            <li>定位重复问题</li>
+            <li>生成项目复盘报告</li>
+          </ul>
+        </section>
 
         <div className="assistant-block">
           <p className="assistant-label">请选择分析项目：</p>
@@ -793,23 +785,28 @@ function RootCausePage({ projects, selectedProject, onProjectChange }) {
                 key={project.id}
                 onClick={() => onProjectChange(project.id)}
               >
-                <strong>{project.name}</strong>
-                <span>{project.location} · {project.health}</span>
+                {project.name}
               </button>
             ))}
-            <span className="more-projects">&gt;</span>
           </div>
+          <p className="selected-project-note">已选择：{selectedProject.name}</p>
         </div>
 
+        {messages.map((message) => (
+          <ChatMessage key={message.id} message={message} selectedProject={selectedProject} context={context} onDownload={downloadProjectReport} />
+        ))}
+
         <div className="assistant-block">
-          <p className="assistant-label">你可以这样问：</p>
-          <div className="prompt-grid">
+          <p className="assistant-label">问题列表：</p>
+          <div className="prompt-list">
             {rootAssistantSuggestions.map((suggestion) => (
               <button type="button" key={suggestion} onClick={() => ask(suggestion)}>
-                {suggestion}
+                <span>{suggestion}</span>
+                <b>›</b>
               </button>
             ))}
           </div>
+          <p className="assistant-input-note">或者直接在底部输入你的问题</p>
         </div>
 
         {isThinking && (
