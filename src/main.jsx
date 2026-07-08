@@ -11,7 +11,9 @@ import {
   GitBranch,
   HeartPulse,
   MessageCircle,
+  Mic,
   RefreshCcw,
+  SendHorizontal,
   ShieldAlert,
   Sparkles,
   X,
@@ -175,7 +177,7 @@ const levelMeta = {
   Low: { color: '#059669', bg: '#eafaf2' },
 };
 
-const periods = ['近7天', '近30天', '近90天'];
+const periods = ['最近7天', '最近15天', '最近30天'];
 
 const rootCauseData = {
   'xinghe-3': {
@@ -323,15 +325,6 @@ const rootCauseData = {
   },
 };
 
-const departmentOptions = ['全部部门', '项目管理部', '采购组', '施工组', '客户组'];
-
-const rootAssistantSuggestions = [
-  '分析当前项目主要问题',
-  '为什么最近延期风险增加？',
-  '帮我生成项目风险复盘报告',
-  '查找项目潜在风险原因',
-];
-
 const rootAssistantContext = {
   'xinghe-3': {
     summary: ['近期主要风险集中在进度风险和质量风险。', '材料延期、图纸版本不一致、客户变更确认是出现频率较高的问题。'],
@@ -378,71 +371,291 @@ const rootAssistantContext = {
 };
 
 const emotionData = {
-  'xinghe-3': {
-    positiveRate: 48,
-    neutralRate: 28,
-    negativeRate: 24,
-    lastWeekNegativeRate: 10,
-    alert: '本周负面情绪上升，主要话题：进度压力、材料延迟',
-    topics: ['进度压力', '材料延迟', '返工沟通'],
-    trend: [
-      { day: '周一', positive: 58, neutral: 28, negative: 14 },
-      { day: '周二', positive: 54, neutral: 30, negative: 16 },
-      { day: '周三', positive: 50, neutral: 29, negative: 21 },
-      { day: '周四', positive: 45, neutral: 28, negative: 27 },
-      { day: '周五', positive: 41, neutral: 24, negative: 35 },
+  all: {
+    name: '全部项目',
+    status: '整体可控',
+    statusIcon: '😊',
+    weekCompare: '负面消息下降 2%',
+    summary: '跨项目沟通氛围整体稳定，个别项目在交付节点前出现压力讨论。',
+    ranges: {
+      '最近7天': {
+        positive: 58,
+        neutral: 31,
+        negative: 11,
+        previousNegative: 13,
+        previousLabel: '上周',
+        currentLabel: '本周',
+        anomaly: false,
+        trend: [
+          { label: '周一', positive: 60, neutral: 30, negative: 10, lastNegative: 12 },
+          { label: '周二', positive: 59, neutral: 31, negative: 10, lastNegative: 13 },
+          { label: '周三', positive: 57, neutral: 32, negative: 11, lastNegative: 14 },
+          { label: '周四', positive: 58, neutral: 31, negative: 11, lastNegative: 13 },
+          { label: '周五', positive: 56, neutral: 32, negative: 12, lastNegative: 12 },
+          { label: '周六', positive: 59, neutral: 30, negative: 11, lastNegative: 13 },
+          { label: '周日', positive: 58, neutral: 31, negative: 11, lastNegative: 13 },
+        ],
+      },
+      '最近15天': {
+        positive: 56,
+        neutral: 32,
+        negative: 12,
+        previousNegative: 15,
+        previousLabel: '前15天',
+        currentLabel: '近15天',
+        anomaly: false,
+        trend: [
+          { label: 'D1', positive: 57, neutral: 31, negative: 12, lastNegative: 16 },
+          { label: 'D3', positive: 55, neutral: 33, negative: 12, lastNegative: 15 },
+          { label: 'D5', positive: 54, neutral: 33, negative: 13, lastNegative: 15 },
+          { label: 'D7', positive: 56, neutral: 32, negative: 12, lastNegative: 14 },
+          { label: 'D9', positive: 57, neutral: 31, negative: 12, lastNegative: 15 },
+          { label: 'D12', positive: 56, neutral: 32, negative: 12, lastNegative: 15 },
+          { label: 'D15', positive: 56, neutral: 32, negative: 12, lastNegative: 15 },
+        ],
+      },
+      '最近30天': {
+        positive: 55,
+        neutral: 33,
+        negative: 12,
+        previousNegative: 14,
+        previousLabel: '前30天',
+        currentLabel: '近30天',
+        anomaly: false,
+        trend: [
+          { label: '1周', positive: 56, neutral: 32, negative: 12, lastNegative: 15 },
+          { label: '2周', positive: 54, neutral: 34, negative: 12, lastNegative: 14 },
+          { label: '3周', positive: 55, neutral: 33, negative: 12, lastNegative: 13 },
+          { label: '4周', positive: 55, neutral: 33, negative: 12, lastNegative: 14 },
+        ],
+      },
+    },
+    alert: {
+      title: '暂无明显异常波动',
+      change: '过去3天负面消息比例：13% → 11%',
+      topics: ['验收准备', '材料到场', '客户确认'],
+      suggestion: '建议保持例会节奏，持续关注交付节点前后的沟通密度。',
+    },
+    topics: [
+      { name: '材料延期', count: 42, trend: '+8' },
+      { name: '设计变更', count: 31, trend: '+4' },
+      { name: '工期压力', count: 28, trend: '+6' },
     ],
-    teams: [
-      { name: '项目管理部', positive: 52, neutral: 30, negative: 18, status: '稳定' },
-      { name: '采购组', positive: 35, neutral: 30, negative: 35, status: '预警' },
-      { name: '施工组', positive: 46, neutral: 27, negative: 27, status: '关注' },
-      { name: '客户组', positive: 62, neutral: 24, negative: 14, status: '良好' },
+  },
+  'xinghe-3': {
+    name: '星河湾三期精装工程',
+    status: '需要关注',
+    statusIcon: '⚠',
+    weekCompare: '负面消息上升 22%',
+    summary: '材料供应和设计变更讨论增多，交付压力在近三天集中释放。',
+    ranges: {
+      '最近7天': {
+        positive: 38,
+        neutral: 30,
+        negative: 32,
+        previousNegative: 10,
+        previousLabel: '上周',
+        currentLabel: '本周',
+        anomaly: true,
+        trend: [
+          { label: '周一', positive: 56, neutral: 34, negative: 10, lastNegative: 9 },
+          { label: '周二', positive: 51, neutral: 35, negative: 14, lastNegative: 10 },
+          { label: '周三', positive: 47, neutral: 32, negative: 21, lastNegative: 10 },
+          { label: '周四', positive: 41, neutral: 31, negative: 28, lastNegative: 11 },
+          { label: '周五', positive: 38, neutral: 30, negative: 32, lastNegative: 10 },
+          { label: '周六', positive: 39, neutral: 29, negative: 32, lastNegative: 10 },
+          { label: '周日', positive: 38, neutral: 30, negative: 32, lastNegative: 10 },
+        ],
+      },
+      '最近15天': {
+        positive: 44,
+        neutral: 31,
+        negative: 25,
+        previousNegative: 14,
+        previousLabel: '前15天',
+        currentLabel: '近15天',
+        anomaly: true,
+        trend: [
+          { label: 'D1', positive: 55, neutral: 31, negative: 14, lastNegative: 12 },
+          { label: 'D3', positive: 51, neutral: 32, negative: 17, lastNegative: 13 },
+          { label: 'D5', positive: 48, neutral: 32, negative: 20, lastNegative: 14 },
+          { label: 'D7', positive: 45, neutral: 31, negative: 24, lastNegative: 14 },
+          { label: 'D9', positive: 43, neutral: 31, negative: 26, lastNegative: 15 },
+          { label: 'D12', positive: 42, neutral: 32, negative: 26, lastNegative: 14 },
+          { label: 'D15', positive: 44, neutral: 31, negative: 25, lastNegative: 14 },
+        ],
+      },
+      '最近30天': {
+        positive: 48,
+        neutral: 32,
+        negative: 20,
+        previousNegative: 16,
+        previousLabel: '前30天',
+        currentLabel: '近30天',
+        anomaly: false,
+        trend: [
+          { label: '1周', positive: 52, neutral: 32, negative: 16, lastNegative: 15 },
+          { label: '2周', positive: 49, neutral: 32, negative: 19, lastNegative: 16 },
+          { label: '3周', positive: 46, neutral: 33, negative: 21, lastNegative: 16 },
+          { label: '4周', positive: 48, neutral: 32, negative: 20, lastNegative: 16 },
+        ],
+      },
+    },
+    alert: {
+      title: '沟通氛围异常',
+      change: '过去3天负面消息比例：10% → 32%',
+      topics: ['工期延期', '材料供应', '设计变更'],
+      suggestion: '建议关注当前项目交付压力，优先确认材料到场和变更闭环。',
+    },
+    topics: [
+      { name: '材料延期', count: 35, trend: '+18' },
+      { name: '设计变更', count: 21, trend: '+9' },
+      { name: '工期压力', count: 18, trend: '+7' },
     ],
   },
   'yunhai-a': {
-    positiveRate: 65,
-    neutralRate: 27,
-    negativeRate: 8,
-    lastWeekNegativeRate: 12,
-    alert: '团队情绪整体稳定，负面消息占比较上周下降',
-    topics: ['验收准备', '联调安排', '客户确认'],
-    trend: [
-      { day: '周一', positive: 61, neutral: 27, negative: 12 },
-      { day: '周二', positive: 64, neutral: 25, negative: 11 },
-      { day: '周三', positive: 66, neutral: 26, negative: 8 },
-      { day: '周四', positive: 65, neutral: 28, negative: 7 },
-      { day: '周五', positive: 68, neutral: 24, negative: 8 },
-    ],
-    teams: [
-      { name: '项目管理部', positive: 68, neutral: 24, negative: 8, status: '良好' },
-      { name: '采购组', positive: 59, neutral: 31, negative: 10, status: '稳定' },
-      { name: '施工组', positive: 63, neutral: 29, negative: 8, status: '良好' },
-      { name: '客户组', positive: 70, neutral: 23, negative: 7, status: '良好' },
+    name: '云海中心A座改造',
+    status: '积极稳定',
+    statusIcon: '😊',
+    weekCompare: '负面消息下降 3%',
+    summary: '验收准备讨论较集中，但沟通语气稳定，协同节奏较好。',
+    ranges: {
+      '最近7天': {
+        positive: 62,
+        neutral: 30,
+        negative: 8,
+        previousNegative: 11,
+        previousLabel: '上周',
+        currentLabel: '本周',
+        anomaly: false,
+        trend: [
+          { label: '周一', positive: 59, neutral: 30, negative: 11, lastNegative: 12 },
+          { label: '周二', positive: 60, neutral: 30, negative: 10, lastNegative: 11 },
+          { label: '周三', positive: 62, neutral: 29, negative: 9, lastNegative: 10 },
+          { label: '周四', positive: 63, neutral: 29, negative: 8, lastNegative: 11 },
+          { label: '周五', positive: 62, neutral: 30, negative: 8, lastNegative: 11 },
+          { label: '周六', positive: 61, neutral: 31, negative: 8, lastNegative: 10 },
+          { label: '周日', positive: 62, neutral: 30, negative: 8, lastNegative: 11 },
+        ],
+      },
+      '最近15天': {
+        positive: 61,
+        neutral: 30,
+        negative: 9,
+        previousNegative: 12,
+        previousLabel: '前15天',
+        currentLabel: '近15天',
+        anomaly: false,
+        trend: [
+          { label: 'D1', positive: 58, neutral: 30, negative: 12, lastNegative: 13 },
+          { label: 'D3', positive: 60, neutral: 30, negative: 10, lastNegative: 12 },
+          { label: 'D5', positive: 61, neutral: 30, negative: 9, lastNegative: 12 },
+          { label: 'D7', positive: 62, neutral: 29, negative: 9, lastNegative: 11 },
+          { label: 'D9', positive: 61, neutral: 30, negative: 9, lastNegative: 12 },
+          { label: 'D12', positive: 62, neutral: 29, negative: 9, lastNegative: 12 },
+          { label: 'D15', positive: 61, neutral: 30, negative: 9, lastNegative: 12 },
+        ],
+      },
+      '最近30天': {
+        positive: 60,
+        neutral: 31,
+        negative: 9,
+        previousNegative: 12,
+        previousLabel: '前30天',
+        currentLabel: '近30天',
+        anomaly: false,
+        trend: [
+          { label: '1周', positive: 59, neutral: 30, negative: 11, lastNegative: 12 },
+          { label: '2周', positive: 60, neutral: 31, negative: 9, lastNegative: 12 },
+          { label: '3周', positive: 61, neutral: 30, negative: 9, lastNegative: 11 },
+          { label: '4周', positive: 60, neutral: 31, negative: 9, lastNegative: 12 },
+        ],
+      },
+    },
+    alert: {
+      title: '暂无明显异常波动',
+      change: '过去3天负面消息比例：11% → 8%',
+      topics: ['验收准备', '联调安排', '客户确认'],
+      suggestion: '建议继续保持跨方联调节奏，避免验收前信息分散。',
+    },
+    topics: [
+      { name: '验收准备', count: 24, trend: '+3' },
+      { name: '联调安排', count: 19, trend: '-2' },
+      { name: '客户确认', count: 14, trend: '+1' },
     ],
   },
   beichen: {
-    positiveRate: 35,
-    neutralRate: 40,
-    negativeRate: 25,
-    lastWeekNegativeRate: 16,
-    alert: '安全审批与夜间作业相关讨论增加，负面情绪持续偏高',
-    topics: ['安全审批', '夜间作业', '资料压力'],
-    trend: [
-      { day: '周一', positive: 42, neutral: 42, negative: 16 },
-      { day: '周二', positive: 39, neutral: 40, negative: 21 },
-      { day: '周三', positive: 36, neutral: 41, negative: 23 },
-      { day: '周四', positive: 34, neutral: 39, negative: 27 },
-      { day: '周五', positive: 35, neutral: 40, negative: 25 },
-    ],
-    teams: [
-      { name: '项目管理部', positive: 38, neutral: 42, negative: 20, status: '关注' },
-      { name: '采购组', positive: 41, neutral: 39, negative: 20, status: '稳定' },
-      { name: '施工组', positive: 30, neutral: 38, negative: 32, status: '预警' },
-      { name: '客户组', positive: 47, neutral: 36, negative: 17, status: '稳定' },
+    name: '北辰商业广场机电工程',
+    status: '压力偏高',
+    statusIcon: '⚠',
+    weekCompare: '负面消息上升 9%',
+    summary: '夜间作业和安全审批相关讨论持续偏多，需要关注执行节奏。',
+    ranges: {
+      '最近7天': {
+        positive: 42,
+        neutral: 33,
+        negative: 25,
+        previousNegative: 16,
+        previousLabel: '上周',
+        currentLabel: '本周',
+        anomaly: true,
+        trend: [
+          { label: '周一', positive: 49, neutral: 35, negative: 16, lastNegative: 15 },
+          { label: '周二', positive: 46, neutral: 34, negative: 20, lastNegative: 16 },
+          { label: '周三', positive: 43, neutral: 34, negative: 23, lastNegative: 16 },
+          { label: '周四', positive: 41, neutral: 33, negative: 26, lastNegative: 17 },
+          { label: '周五', positive: 42, neutral: 33, negative: 25, lastNegative: 16 },
+          { label: '周六', positive: 41, neutral: 34, negative: 25, lastNegative: 16 },
+          { label: '周日', positive: 42, neutral: 33, negative: 25, lastNegative: 16 },
+        ],
+      },
+      '最近15天': {
+        positive: 44,
+        neutral: 34,
+        negative: 22,
+        previousNegative: 17,
+        previousLabel: '前15天',
+        currentLabel: '近15天',
+        anomaly: false,
+        trend: [
+          { label: 'D1', positive: 48, neutral: 35, negative: 17, lastNegative: 16 },
+          { label: 'D3', positive: 46, neutral: 35, negative: 19, lastNegative: 17 },
+          { label: 'D5', positive: 44, neutral: 35, negative: 21, lastNegative: 17 },
+          { label: 'D7', positive: 43, neutral: 35, negative: 22, lastNegative: 18 },
+          { label: 'D9', positive: 43, neutral: 34, negative: 23, lastNegative: 17 },
+          { label: 'D12', positive: 44, neutral: 34, negative: 22, lastNegative: 17 },
+          { label: 'D15', positive: 44, neutral: 34, negative: 22, lastNegative: 17 },
+        ],
+      },
+      '最近30天': {
+        positive: 45,
+        neutral: 35,
+        negative: 20,
+        previousNegative: 18,
+        previousLabel: '前30天',
+        currentLabel: '近30天',
+        anomaly: false,
+        trend: [
+          { label: '1周', positive: 46, neutral: 35, negative: 19, lastNegative: 17 },
+          { label: '2周', positive: 44, neutral: 35, negative: 21, lastNegative: 18 },
+          { label: '3周', positive: 45, neutral: 35, negative: 20, lastNegative: 18 },
+          { label: '4周', positive: 45, neutral: 35, negative: 20, lastNegative: 18 },
+        ],
+      },
+    },
+    alert: {
+      title: '沟通氛围异常',
+      change: '过去3天负面消息比例：16% → 25%',
+      topics: ['安全审批', '夜间作业', '资料补齐'],
+      suggestion: '建议关注高风险作业审批闭环，减少临近施工前的反复确认。',
+    },
+    topics: [
+      { name: '安全审批', count: 29, trend: '+11' },
+      { name: '夜间作业', count: 17, trend: '+6' },
+      { name: '资料补齐', count: 13, trend: '+4' },
     ],
   },
 };
-
 const auditData = {
   summary: {
     logCount: 128,
@@ -507,7 +720,6 @@ function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0].id);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(periods[1]);
-  const [selectedDepartment, setSelectedDepartment] = useState(departmentOptions[0]);
   const [typeFilter, setTypeFilter] = useState('全部');
   const [levelFilter, setLevelFilter] = useState('全部');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -568,11 +780,12 @@ function App() {
         ) : activeModule === 'emotion' ? (
           <EmotionDashboardPage
             selectedProject={selectedProject}
+            projects={projects}
             selectedPeriod={selectedPeriod}
-            selectedDepartment={selectedDepartment}
+            refreshing={refreshing}
             onPeriodChange={setSelectedPeriod}
-            onDepartmentChange={setSelectedDepartment}
-            onProjectOpen={() => setProjectPickerOpen(true)}
+            onProjectChange={handleProjectChange}
+            onRefresh={handleRefresh}
           />
         ) : (
           <AuditDashboardPage selectedProject={selectedProject} onProjectOpen={() => setProjectPickerOpen(true)} />
@@ -732,13 +945,53 @@ function RootCausePage({ projects, selectedProject, onProjectChange }) {
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversationTitle, setConversationTitle] = useState('自由分析对话');
   const context = rootAssistantContext[selectedProject.id] ?? rootAssistantContext['xinghe-3'];
+  const promptQuestions = [
+    '为什么项目延期？',
+    '最近反复出现的问题是什么？',
+    '客户投诉增加原因？',
+    '哪些流程存在瓶颈？',
+    '如何降低设计变更风险？',
+  ];
+
+  const conversationHistory = [
+    {
+      projectId: 'xinghe-3',
+      projectName: '星河湾三期精装工程',
+      color: 'blue',
+      items: [
+        { title: '项目延期原因分析', time: '今天 09:18', summary: '分析了采购审批流程、材料供应、设计变更等关键影响因素。' },
+        { title: '客户投诉增加原因分析', time: '7月8日 15:32', summary: '从设计变更、施工质量、沟通响应等维度分析。' },
+        { title: '施工质量问题根因分析', time: '7月7日 10:21', summary: '分析了返工率高的原因及关键影响因素。' },
+      ],
+    },
+    {
+      projectId: 'yunhai-a',
+      projectName: '云海中心 A 座改造',
+      color: 'green',
+      items: [
+        { title: '工期延误分析', time: '7月6日 14:05', summary: '从进度计划、资源配置、流程效率等方面分析。' },
+        { title: '设计变更频繁原因分析', time: '7月5日 11:20', summary: '分析变更来源、审批流程、沟通机制等问题。' },
+      ],
+    },
+    {
+      projectId: 'beichen',
+      projectName: '北辰商业广场机电工程',
+      color: 'orange',
+      items: [
+        { title: '材料供应风险分析', time: '7月4日 16:42', summary: '分析供应商履约、材料交付、库存管理等风险。' },
+      ],
+    },
+  ];
 
   function ask(question) {
     const trimmed = question.trim();
     if (!trimmed || isThinking) return;
     const userMessage = { id: `user-${Date.now()}`, role: 'user', content: trimmed };
     setMessages((current) => [...current, userMessage]);
+    setConversationTitle(trimmed.length > 16 ? `${trimmed.slice(0, 16)}...` : trimmed);
     setInputValue('');
     setIsThinking(true);
     window.setTimeout(() => {
@@ -747,105 +1000,184 @@ function RootCausePage({ projects, selectedProject, onProjectChange }) {
     }, 650);
   }
 
+  function startNewConversation() {
+    setMessages([]);
+    setInputValue('');
+    setConversationTitle('自由分析对话');
+  }
+
+  function openHistoryItem(item, projectId) {
+    onProjectChange(projectId);
+    setConversationTitle(item.title);
+    setMessages([
+      { id: `history-user-${Date.now()}`, role: 'user', content: item.title },
+      { id: `history-ai-${Date.now()}`, role: 'assistant', type: 'analysis', content: item.summary },
+    ]);
+    setHistoryOpen(false);
+  }
+
   function downloadProjectReport() {
     const report = buildReportText(selectedProject, context);
     const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${selectedProject.name}-风险复盘报告.txt`;
+    link.download = `${selectedProject.name}-AI根因分析报告.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
 
   return (
     <section className="assistant-page">
-      <header className="assistant-header">
-        <h1>观澜AI根因分析</h1>
+      <header className="root-assistant-actionbar">
+        <button type="button" className="root-action-primary" onClick={startNewConversation}>
+          <Sparkles size={17} />
+          新建对话
+        </button>
+        <button type="button" className="root-action-secondary" onClick={() => setHistoryOpen(true)}>
+          <Clock3 size={17} />
+          对话记录
+        </button>
       </header>
-
-      <div className="chat-area">
-        <section className="welcome-panel">
-          <h2>👋 你好</h2>
-          <p>我可以帮助你：</p>
-          <ul>
-            <li>分析项目风险原因</li>
-            <li>定位重复问题</li>
-            <li>生成项目复盘报告</li>
-          </ul>
-        </section>
-
-        <div className="assistant-block">
-          <p className="assistant-label">请选择分析项目：</p>
-          <div className="project-chip-row">
-            {projects.map((project) => (
-              <button
-                type="button"
-                className={`project-context-card ${project.id === selectedProject.id ? 'active' : ''}`}
-                key={project.id}
-                onClick={() => onProjectChange(project.id)}
-              >
-                {project.name}
-              </button>
-            ))}
+      <div className="chat-area root-chat-area">
+        <section className="ai-intro-panel root-ai-intro-panel">
+          <div className="ai-avatar">
+            <Sparkles size={26} />
           </div>
-          <p className="selected-project-note">已选择：{selectedProject.name}</p>
-        </div>
+          <div className="ai-intro-copy">
+            <span>观澜工程 AI 助手</span>
+            <h2>面向项目现场的智能分析助手</h2>
+            <p>基于项目风险、沟通记录、任务节点和流程数据，帮助你定位问题原因、梳理分析依据，并形成可执行的优化建议。</p>
+          </div>
+          <div className="ai-capability-row">
+            <span>风险识别</span>
+            <span>原因定位</span>
+            <span>优化建议</span>
+            <span>持续追问</span>
+          </div>
+        </section>
 
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} selectedProject={selectedProject} context={context} onDownload={downloadProjectReport} />
         ))}
 
-        <div className="assistant-block">
-          <p className="assistant-label">问题列表：</p>
+        <section className="prompt-panel">
+          <div className="section-title">
+            <span>推荐问题</span>
+            <small>选择一个方向开始分析</small>
+          </div>
           <div className="prompt-list">
-            {rootAssistantSuggestions.map((suggestion) => (
+            {promptQuestions.map((suggestion) => (
               <button type="button" key={suggestion} onClick={() => ask(suggestion)}>
                 <span>{suggestion}</span>
                 <b>›</b>
               </button>
             ))}
           </div>
-          <p className="assistant-input-note">或者直接在底部输入你的问题</p>
-        </div>
+        </section>
 
         {isThinking && (
           <div className="chat-message assistant">
-            <div className="bubble thinking">正在分析 {selectedProject.name} 近期风险数据...</div>
+            <div className="bubble thinking">正在读取 {selectedProject.name} 的风险、沟通和流程记录...</div>
           </div>
         )}
       </div>
 
       <form
-        className="chat-input-bar"
+        className="root-input-panel"
         onSubmit={(event) => {
           event.preventDefault();
           ask(inputValue);
         }}
       >
-        <input value={inputValue} onChange={(event) => setInputValue(event.target.value)} placeholder="问问项目风险原因..." />
-        <button type="submit">发送</button>
+        <div className="project-bubble-row">
+          {projects.map((project) => (
+            <button
+              type="button"
+              className={`project-bubble ${project.id === selectedProject.id ? 'active' : ''}`}
+              key={project.id}
+              onClick={() => onProjectChange(project.id)}
+            >
+              {project.name}
+            </button>
+          ))}
+        </div>
+        <div className="root-input-row">
+          <button type="button" className="voice-button" aria-label="语音输入">
+            <Mic size={18} />
+          </button>
+          <input value={inputValue} onChange={(event) => setInputValue(event.target.value)} placeholder="基于当前项目提问..." />
+          <button type="submit" className="send-button" aria-label="发送问题">
+            <SendHorizontal size={18} />
+          </button>
+        </div>
       </form>
+
+      <ConversationHistoryDrawer
+        open={historyOpen}
+        groups={conversationHistory}
+        onClose={() => setHistoryOpen(false)}
+        onOpenItem={openHistoryItem}
+      />
     </section>
   );
 }
 
-function ChatMessage({ message, selectedProject, context, onDownload }) {
-  if (message.type === 'welcome') {
-    return (
-      <div className="chat-message assistant">
-        <div className="bubble">
-          <p>{message.content}</p>
+function ConversationHistoryDrawer({ open, groups, onClose, onOpenItem }) {
+  if (!open) return null;
+  return (
+    <div className="drawer-layer" role="dialog" aria-modal="true">
+      <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭对话记录" />
+      <section className="drawer conversation-history-drawer">
+        <div className="drawer-grip" />
+        <div className="conversation-history-head">
+          <h3>对话记录</h3>
+          <button type="button" className="icon-button small" onClick={onClose} aria-label="关闭">
+            <X size={18} />
+          </button>
         </div>
-      </div>
-    );
-  }
+        <div className="history-search-row">
+          <div className="history-search-box">
+            <MessageCircle size={15} />
+            <span>搜索对话记录</span>
+          </div>
+          <button type="button">全部项目</button>
+        </div>
+        <div className="history-group-list">
+          {groups.map((group) => (
+            <article className="history-group-card" key={group.projectId}>
+              <div className="history-project-title">
+                <span className={`history-project-icon ${group.color}`}>
+                  <Building2 size={15} />
+                </span>
+                <strong>{group.projectName}</strong>
+              </div>
+              <div className="history-item-list">
+                {group.items.map((item) => (
+                  <button type="button" className="history-item" key={`${group.projectId}-${item.title}`} onClick={() => onOpenItem(item, group.projectId)}>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.summary}</p>
+                    </div>
+                    <time>{item.time}</time>
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="history-more-button">查看更多 ({group.items.length * 4})</button>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
 
+function ChatMessage({ message, selectedProject, context, onDownload }) {
   if (message.type === 'report') {
     return (
       <div className="chat-message assistant">
         <div className="bubble report-card">
-          <h3>{selectedProject.name}风险复盘报告</h3>
+          <h3>{selectedProject.name} 风险复盘报告</h3>
           <ReportPreview context={context} />
           <div className="report-actions">
             <button type="button">查看报告</button>
@@ -867,18 +1199,24 @@ function ChatMessage({ message, selectedProject, context, onDownload }) {
   return (
     <div className="chat-message assistant">
       <div className="bubble structured-answer">
-        <p>你好，我正在分析{selectedProject.name}近期风险数据。</p>
-        <h4>1. 项目风险总结</h4>
-        <ul>
-          {context.summary.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        <h4>2. 可能原因分析</h4>
+        <div className="analysis-process">
+          <span>已读取项目上下文</span>
+          <span>正在归纳高频风险</span>
+          <span>生成根因推测</span>
+        </div>
+        <div className="answer-summary-card">
+          <strong>{selectedProject.name} 分析摘要</strong>
+          <ul>
+            {context.summary.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+        <h4>结构化根因分析</h4>
         {context.causes.map((cause, index) => (
           <div className="answer-cause" key={cause.title}>
-            <strong>原因{index + 1}：{cause.title}</strong>
-            <span>分析依据：</span>
+            <strong>可能原因 {index + 1}：{cause.title}</strong>
+            <span>分析依据</span>
             <ul>
               {cause.evidence.map((item) => (
                 <li key={item}>{item}</li>
@@ -886,13 +1224,15 @@ function ChatMessage({ message, selectedProject, context, onDownload }) {
             </ul>
           </div>
         ))}
-        <h4>3. 改进建议</h4>
-        <ul>
-          {context.suggestions.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        <div className="warning-card">⚠ AI分析结果基于历史风险数据推测，仅供参考</div>
+        <div className="suggestion-card">
+          <strong>建议</strong>
+          <ul>
+            {context.suggestions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="warning-card">AI 推测，仅供参考。请结合现场事实和项目负责人确认后再执行。</div>
       </div>
     </div>
   );
@@ -925,9 +1265,8 @@ function buildRootCauseAnswer(question, selectedProject, context) {
 function buildReportText(selectedProject, context) {
   return `${selectedProject.name}风险复盘报告\n\n风险总结\n${context.summary.map((item) => `- ${item}`).join('\n')}\n\n根因分析\n${context.causes
     .map((cause, index) => `${index + 1}. ${cause.title}\n分析依据：\n${cause.evidence.map((item) => `- ${item}`).join('\n')}`)
-    .join('\n\n')}\n\n改进建议\n${context.suggestions.map((item) => `- ${item}`).join('\n')}\n\n⚠ AI分析结果基于历史风险数据推测，仅供参考`;
+    .join('\n\n')}\n\n改进建议\n${context.suggestions.map((item) => `- ${item}`).join('\n')}\n\nAI 推测，仅供参考`;
 }
-
 function MetricCard({ label, value }) {
   return (
     <div className="metric-card">
@@ -937,119 +1276,211 @@ function MetricCard({ label, value }) {
   );
 }
 
-function EmotionDashboardPage({ selectedProject, selectedPeriod, selectedDepartment, onPeriodChange, onDepartmentChange, onProjectOpen }) {
-  const data = emotionData[selectedProject.id] ?? emotionData['xinghe-3'];
-  const filteredTeams =
-    selectedDepartment === '全部部门' ? data.teams : data.teams.filter((team) => team.name === selectedDepartment);
-  const negativeDelta = data.negativeRate - data.lastWeekNegativeRate;
-  const alertTone = negativeDelta > 8 ? 'warning' : 'stable';
+function EmotionDashboardPage({ projects, selectedProject, selectedPeriod, refreshing, onPeriodChange, onProjectChange, onRefresh }) {
+  const [emotionProjectId, setEmotionProjectId] = useState(selectedProject.id);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const selectedEmotionData = emotionData[emotionProjectId] ?? emotionData.all;
+  const rangeData = selectedEmotionData.ranges[selectedPeriod] ?? selectedEmotionData.ranges['最近7天'];
+  const projectOptions = [{ id: 'all', name: '全部项目' }, ...projects];
+  const negativeDelta = rangeData.negative - rangeData.previousNegative;
+  const periodDays = selectedPeriod.replace('最近', '过去');
+  const pressureText = negativeDelta >= 0 ? `上升至 ${rangeData.negative}%` : `下降至 ${rangeData.negative}%`;
+  const trendSentence = `${periodDays}负面讨论占比从${rangeData.previousNegative}%${pressureText}`;
+
+  function chooseProject(projectId) {
+    setEmotionProjectId(projectId);
+    setProjectMenuOpen(false);
+    if (projectId !== 'all') {
+      onProjectChange(projectId);
+    }
+  }
 
   return (
     <>
-      <section className="hero-card emotion-hero">
-        <div className="hero-top">
-          <div>
-            <p className="eyebrow">观澜 Team Mood</p>
-            <button className="project-trigger" type="button" onClick={onProjectOpen}>
-              <span>{selectedProject.name}</span>
-              <ChevronDown size={18} />
-            </button>
-            <p className="project-location">仅展示团队汇总，不展示个人情绪分数</p>
-          </div>
-          <div className="period-select">
-            <select value={selectedPeriod} onChange={(event) => onPeriodChange(event.target.value)} aria-label="情绪分析周期">
-              {periods.map((period) => (
-                <option key={period}>{period}</option>
+      <section className="emotion-lite-header polished project-first">
+        <div className="emotion-header-meta">
+          <span>沟通健康洞察</span>
+          <span className={`emotion-state-chip ${rangeData.anomaly ? 'warning' : 'stable'}`}>
+            {rangeData.anomaly ? '压力上升' : '趋势稳定'}
+          </span>
+        </div>
+        <div className="emotion-project-shell">
+          <button type="button" className="emotion-project-title" onClick={() => setProjectMenuOpen((open) => !open)}>
+            <Building2 size={18} />
+            <span>{selectedEmotionData.name}</span>
+            <ChevronDown size={18} />
+          </button>
+          {projectMenuOpen && (
+            <div className="emotion-project-menu">
+              {projectOptions.map((project) => (
+                <button
+                  type="button"
+                  key={project.id}
+                  className={project.id === emotionProjectId ? 'active' : ''}
+                  onClick={() => chooseProject(project.id)}
+                >
+                  {project.name}
+                </button>
               ))}
-            </select>
-            <ChevronDown size={14} />
-          </div>
-        </div>
-        <div className="emotion-summary">
-          <MetricCard label="正面消息" value={`${data.positiveRate}%`} />
-          <MetricCard label="负面趋势" value={`${negativeDelta > 0 ? '+' : ''}${negativeDelta}%`} />
-        </div>
-      </section>
-
-      <section className={`emotion-alert ${alertTone}`}>
-        <strong>{alertTone === 'warning' ? '情绪异常波动预警' : '团队情绪稳定'}</strong>
-        <p>{data.alert}</p>
-      </section>
-
-      <section className="section-card">
-        <div className="section-title-row">
-          <div>
-            <h2>情绪趋势</h2>
-            <p>积极 / 中性 / 消极占比，本周 vs 上周</p>
-          </div>
-          <HeartPulse size={18} />
-        </div>
-        <div className="emotion-stack">
-          <EmotionBar label="本周" positive={data.positiveRate} neutral={data.neutralRate} negative={data.negativeRate} />
-          <EmotionBar label="上周" positive={Math.min(100, data.positiveRate + 8)} neutral={100 - Math.min(100, data.positiveRate + 8) - data.lastWeekNegativeRate} negative={data.lastWeekNegativeRate} />
-        </div>
-        <div className="topic-row">
-          {data.topics.map((topic) => (
-            <span key={topic}>{topic}</span>
-          ))}
-        </div>
-      </section>
-
-      <section className="section-card">
-        <div className="section-title-row">
-          <div>
-            <h2>部门/项目对比</h2>
-            <p>支持按部门筛选，展示团队汇总</p>
-          </div>
-          <div className="mini-select">
-            <select value={selectedDepartment} onChange={(event) => onDepartmentChange(event.target.value)} aria-label="部门筛选">
-              {departmentOptions.map((department) => (
-                <option key={department}>{department}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="team-list">
-          {filteredTeams.map((team) => (
-            <div className="team-card" key={team.name}>
-              <div className="team-head">
-                <strong>{team.name}</strong>
-                <span className={`status-pill ${team.status === '预警' ? 'danger' : team.status === '关注' ? 'watch' : ''}`}>{team.status}</span>
-              </div>
-              <EmotionBar label="情绪占比" positive={team.positive} neutral={team.neutral} negative={team.negative} compact />
-              <div className="team-metrics">
-                <span>正面 {team.positive}%</span>
-                <span>负面 {team.negative}%</span>
-              </div>
             </div>
+          )}
+        </div>
+        <p>观察项目沟通氛围变化，辅助提前识别交付压力。</p>
+      </section>
+      <section className={`atmosphere-trend-card ${rangeData.anomaly ? 'warning' : 'stable'}`}>
+        <div className="trend-summary-head title-first">
+          <div>
+            <h2>沟通氛围趋势</h2>
+            <p>{trendSentence}</p>
+          </div>
+          <span className={`trend-status-button ${rangeData.anomaly ? 'warning' : 'stable'}`}>
+            {rangeData.anomaly ? '需关注' : '稳定'}
+          </span>
+        </div>
+        {rangeData.anomaly && <p className="trend-inline-note">负面讨论连续升高，建议优先查看关联话题和 AI 洞察。</p>}
+        <EmotionTrendChart points={rangeData.trend} />
+        <div className="trend-compare-grid compact">
+          <span>{rangeData.previousLabel}<b>负面讨论 {rangeData.previousNegative}%</b></span>
+          <span>{rangeData.currentLabel}<b>负面讨论 {rangeData.negative}%</b></span>
+        </div>
+      </section>
+      <section className="emotion-ratio-strip compact-ratio-card">
+        <div className="section-title-row compact-title-row">
+          <div>
+            <h2>沟通情绪比例</h2>
+            <p>辅助参考，不代表个人评价</p>
+          </div>
+        </div>
+        <EmotionDistribution positive={rangeData.positive} neutral={rangeData.neutral} negative={rangeData.negative} />
+      </section>
+
+      <section className="ai-analysis-card insight-analysis-card">
+        <div className="section-title-row compact-title-row">
+          <div>
+            <h2>AI洞察</h2>
+            <p>趋势洞察 + 原因分析，仅基于项目汇总数据</p>
+          </div>
+          <Sparkles size={18} />
+        </div>
+        <div className="ai-insight-list four-part">
+          <div>
+            <span>AI发现</span>
+            <p>{rangeData.anomaly ? trendSentence : '近期沟通氛围整体稳定，负面讨论未出现连续升高。'}</p>
+          </div>
+          <div>
+            <span>可能原因</span>
+            <p>{rangeData.anomaly ? selectedEmotionData.summary : '当前讨论主要集中在常规协同事项，未形成明显交付压力。'}</p>
+          </div>
+          <div>
+            <span>关联话题</span>
+            <p>{selectedEmotionData.alert.topics.join('、')}</p>
+          </div>
+          <div>
+            <span>管理建议</span>
+            <p>{selectedEmotionData.alert.suggestion}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-card emotion-section-card topic-feed-section">
+        <div className="section-title-row compact-title-row">
+          <div>
+            <h2>近期高频话题</h2>
+            <p>仅展示项目汇总话题，不定位到个人</p>
+          </div>
+        </div>
+        <div className="topic-analysis-list">
+          {selectedEmotionData.topics.map((topic, index) => (
+            <article className="topic-analysis-card" key={topic.name}>
+              <span>{index + 1}</span>
+              <div>
+                <strong>{topic.name}</strong>
+                <small>涉及消息：{topic.count}条</small>
+              </div>
+              <b>{topic.trend}</b>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="privacy-card">
+      <section className="privacy-card emotion-privacy-note">
         <ShieldAlert size={16} />
-        <span>隐私原则：本页只展示项目/部门汇总，不展示个人情绪分数。</span>
+        <span>本页只展示团队/项目汇总数据，不展示任何个人情绪评分，不输出员工性格或心理状态判断。AI分析结果，仅供参考。</span>
+      </section>
+
+      <section className="emotion-floating-actions">
+        <div className="range-segmented" aria-label="时间范围筛选">
+          {periods.map((period) => (
+            <button type="button" className={period === selectedPeriod ? 'active' : ''} key={period} onClick={() => onPeriodChange(period)}>
+              {period.replace('最近', '')}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="emotion-refresh" onClick={onRefresh} aria-label="刷新沟通健康洞察">
+          <RefreshCcw size={16} className={refreshing ? 'spin' : ''} />
+        </button>
       </section>
     </>
   );
 }
-
-function EmotionBar({ label, positive, neutral, negative, compact = false }) {
+function EmotionDistribution({ positive, neutral, negative }) {
   return (
-    <div className={`emotion-bar-block ${compact ? 'compact' : ''}`}>
-      <div className="emotion-bar-head">
-        <span>{label}</span>
-        <small>正 {positive}% · 中 {neutral}% · 负 {negative}%</small>
+    <div className="emotion-distribution-card">
+      <div className="emotion-distribution-bar">
+        <i className="positive" style={{ width: `${positive}%` }} />
+        <i className="neutral" style={{ width: `${neutral}%` }} />
+        <i className="negative" style={{ width: `${negative}%` }} />
       </div>
-      <div className="emotion-bar">
-        <span className="positive" style={{ width: `${positive}%` }} />
-        <span className="neutral" style={{ width: `${neutral}%` }} />
-        <span className="negative" style={{ width: `${negative}%` }} />
+      <div className="emotion-distribution-values">
+        <b>积极 {positive}%</b>
+        <b>中性 {neutral}%</b>
+        <b>消极 {negative}%</b>
       </div>
     </div>
   );
 }
 
+function EmotionTrendChart({ points }) {
+  const chartWidth = 320;
+  const chartHeight = 160;
+  const padding = 24;
+  const xStep = points.length > 1 ? (chartWidth - padding * 2) / (points.length - 1) : 0;
+
+  function pathFor(key) {
+    return points
+      .map((point, index) => {
+        const x = padding + index * xStep;
+        const y = chartHeight - padding - (point[key] / 100) * (chartHeight - padding * 2);
+        return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(' ');
+  }
+
+  const anomalyPoint = points.reduce((max, point, index) => (point.negative > max.point.negative ? { point, index } : max), { point: points[0], index: 0 });
+  const anomalyX = padding + anomalyPoint.index * xStep;
+  const anomalyY = chartHeight - padding - (anomalyPoint.point.negative / 100) * (chartHeight - padding * 2);
+
+  return (
+    <div className="emotion-chart-wrap">
+      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="沟通氛围变化趋势折线图">
+        <line x1={padding} y1="32" x2={chartWidth - padding} y2="32" />
+        <line x1={padding} y1="80" x2={chartWidth - padding} y2="80" />
+        <line x1={padding} y1="128" x2={chartWidth - padding} y2="128" />
+        <path className="positive" d={pathFor('positive')} />
+        <path className="neutral" d={pathFor('neutral')} />
+        <path className="negative" d={pathFor('negative')} />
+        <path className="last-negative" d={pathFor('lastNegative')} />
+        <circle className="anomaly-dot" cx={anomalyX} cy={anomalyY} r="4" />
+      </svg>
+      <div className="chart-legend">
+        <span className="positive">积极</span>
+        <span className="neutral">中性</span>
+        <span className="negative">消极</span>
+        <span className="last">上期消极</span>
+      </div>
+    </div>
+  );
+}
 function AuditDashboardPage({ selectedProject, onProjectOpen }) {
   const [rolledBackConfig, setRolledBackConfig] = useState(null);
 
