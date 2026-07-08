@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ClipboardList,
   Clock3,
-  Download,
   Eye,
   Filter,
   GitBranch,
@@ -15,7 +14,6 @@ import {
   RefreshCcw,
   ShieldAlert,
   Sparkles,
-  TrendingUp,
   X,
 } from 'lucide-react';
 import './styles.css';
@@ -327,6 +325,58 @@ const rootCauseData = {
 
 const departmentOptions = ['全部部门', '项目管理部', '采购组', '施工组', '客户组'];
 
+const rootAssistantSuggestions = [
+  '分析当前项目主要问题',
+  '为什么最近延期风险增加？',
+  '帮我生成项目风险复盘报告',
+  '查找项目潜在风险原因',
+];
+
+const rootAssistantContext = {
+  'xinghe-3': {
+    summary: ['近期主要风险集中在进度风险和质量风险。', '材料延期、图纸版本不一致、客户变更确认是出现频率较高的问题。'],
+    causes: [
+      {
+        title: '采购确认流程较长',
+        evidence: ['多条延期风险记录关联采购环节', '多次出现“等待确认”“最快下周”等信息'],
+      },
+      {
+        title: '设计变更同步不及时',
+        evidence: ['多次质量风险与设计调整相关', '现场反馈存在旧图与最新版对不上的情况'],
+      },
+    ],
+    suggestions: ['提前锁定关键供应节点', '建立跨部门同步机制', '将设计变更同步到现场任务卡'],
+  },
+  'yunhai-a': {
+    summary: ['近期风险集中在机电联调排期和客户确认。', '整体风险水平较稳定，但外部协同窗口仍需提前锁定。'],
+    causes: [
+      {
+        title: '多方联调窗口不稳定',
+        evidence: ['消防、弱电、物业联调时间尚未完全锁定', '月底验收节点临近'],
+      },
+      {
+        title: '客户微调需求未结构化沉淀',
+        evidence: ['会议室灯光等细项调整仍停留在群聊沟通', '变更影响暂未转为正式确认项'],
+      },
+    ],
+    suggestions: ['提前两周锁定联调窗口', '建立客户变更确认清单', '每日同步未确认事项'],
+  },
+  beichen: {
+    summary: ['近期主要风险集中在安全风险和合规风险。', '夜间吊装审批、分包资质更新是重点关注项。'],
+    causes: [
+      {
+        title: '高风险作业审批闭环滞后',
+        evidence: ['夜间吊装审批未完成但设备已安排进场', '安全交底和作业计划存在时间差'],
+      },
+      {
+        title: '合规资料到期提醒不足',
+        evidence: ['分包资质文件临近过期', '资料补充依赖人工催办'],
+      },
+    ],
+    suggestions: ['未完成审批时阻断夜间施工计划', '高风险作业加入红线提醒', '设置资质到期自动预警'],
+  },
+};
+
 const emotionData = {
   'xinghe-3': {
     positiveRate: 48,
@@ -458,8 +508,6 @@ function App() {
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(periods[1]);
   const [selectedDepartment, setSelectedDepartment] = useState(departmentOptions[0]);
-  const [selectedCause, setSelectedCause] = useState(null);
-  const [reportCause, setReportCause] = useState(null);
   const [typeFilter, setTypeFilter] = useState('全部');
   const [levelFilter, setLevelFilter] = useState('全部');
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -488,8 +536,6 @@ function App() {
     setTypeFilter('全部');
     setLevelFilter('全部');
     setSelectedRisk(null);
-    setSelectedCause(null);
-    setReportCause(null);
     setProjectPickerOpen(false);
   }
 
@@ -515,11 +561,9 @@ function App() {
           />
         ) : activeModule === 'root' ? (
           <RootCausePage
+            projects={projects}
             selectedProject={selectedProject}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-            onProjectOpen={() => setProjectPickerOpen(true)}
-            onOpenCause={setSelectedCause}
+            onProjectChange={handleProjectChange}
           />
         ) : activeModule === 'emotion' ? (
           <EmotionDashboardPage
@@ -545,8 +589,6 @@ function App() {
           onModuleChange={(module) => {
             setActiveModule(module);
             setSelectedRisk(null);
-            setSelectedCause(null);
-            setReportCause(null);
           }}
         />
 
@@ -571,8 +613,6 @@ function App() {
             setSelectedRisk(null);
           }}
         />
-        <RootCauseDrawer cause={selectedCause} onClose={() => setSelectedCause(null)} onAnalyze={() => setReportCause(selectedCause)} />
-        <AIReportDrawer cause={reportCause} onClose={() => setReportCause(null)} />
       </main>
     </div>
   );
@@ -688,97 +728,207 @@ function RiskCard({ risk, action, onConfirm, onDismiss, onOpen }) {
   );
 }
 
-function RootCausePage({ selectedProject, selectedPeriod, onPeriodChange, onProjectOpen, onOpenCause }) {
-  const data = rootCauseData[selectedProject.id] ?? rootCauseData['xinghe-3'];
+function RootCausePage({ projects, selectedProject, onProjectChange }) {
+  const [inputValue, setInputValue] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      type: 'welcome',
+      content: '你好，我可以帮助你分析项目风险原因。基于项目风险记录，帮助你定位问题原因并生成改善建议。',
+    },
+  ]);
+  const context = rootAssistantContext[selectedProject.id] ?? rootAssistantContext['xinghe-3'];
+
+  function ask(question) {
+    const trimmed = question.trim();
+    if (!trimmed || isThinking) return;
+    const userMessage = { id: `user-${Date.now()}`, role: 'user', content: trimmed };
+    setMessages((current) => [...current, userMessage]);
+    setInputValue('');
+    setIsThinking(true);
+    window.setTimeout(() => {
+      setMessages((current) => [...current, buildRootCauseAnswer(trimmed, selectedProject, context)]);
+      setIsThinking(false);
+    }, 650);
+  }
+
+  function downloadProjectReport() {
+    const report = buildReportText(selectedProject, context);
+    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${selectedProject.name}-风险复盘报告.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <>
-      <section className="hero-card root-hero">
-        <div className="hero-top">
-          <div>
-            <p className="eyebrow">观澜 Root Cause</p>
-            <button className="project-trigger" type="button" onClick={onProjectOpen}>
-              <span>{selectedProject.name}</span>
-              <ChevronDown size={18} />
-            </button>
-            <p className="project-location">{selectedProject.location} · AI推测，仅供参考</p>
-          </div>
-          <div className="period-select">
-            <select value={selectedPeriod} onChange={(event) => onPeriodChange(event.target.value)} aria-label="分析周期">
-              {periods.map((period) => (
-                <option key={period}>{period}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} />
-          </div>
-        </div>
-        <div className="root-summary">
-          <MetricCard label="风险总数" value={`${data.totalRisks}个`} />
-          <MetricCard label="高频风险" value={`${data.frequentRisks}个`} />
-        </div>
-      </section>
-
-      <section className="section-card">
-        <div className="section-title-row">
-          <div>
-            <h2>风险分布</h2>
-            <p>{selectedPeriod}内不同风险类型占比</p>
-          </div>
-          <TrendingUp size={18} />
-        </div>
-        <div className="distribution-list">
-          {data.distribution.map((item) => (
-            <div className="distribution-row" key={item.type}>
-              <span>{item.type}</span>
-              <div className="distribution-track">
-                <div className="distribution-fill" style={{ width: `${item.percent}%`, background: item.color }} />
-              </div>
-              <strong>{item.percent}%</strong>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="feed-head root-feed-head">
+    <section className="assistant-page">
+      <header className="assistant-header">
         <div>
-          <h2>高频风险列表</h2>
-          <p>模拟展示出现次数超过3次的问题</p>
+          <p className="eyebrow">AI 风险根因分析助手</p>
+          <h1>观澜 AI 根因分析</h1>
         </div>
-      </section>
+        <div className="ai-badge">
+          <Sparkles size={16} />
+          助手
+        </div>
+      </header>
 
-      <section className="risk-feed">
-        {data.issues.map((issue) => (
-          <button className="cause-card" type="button" key={issue.id} onClick={() => onOpenCause(issue)}>
-            <div className="risk-card-top">
-              <span className="tag" style={{ '--tag-color': '#1d4ed8', '--tag-bg': '#e8f0ff' }}>
-                {issue.issueType}
-              </span>
-              <span className="risk-time">{issue.latestTime}</span>
-            </div>
-            <h3>{issue.name}</h3>
-            <div className="cause-grid">
-              <span>
-                <b>{issue.count}次</b>
-                出现次数
-              </span>
-              <span>
-                <b>{issue.stage}</b>
-                涉及环节
-              </span>
-              <span>
-                <b>{issue.impact}</b>
-                影响
-              </span>
-              <span>
-                <b>{Math.round(issue.confidence * 100)}%</b>
-                可信度
-              </span>
-            </div>
-            <p className="cause-root">AI推测根因：{issue.rootCause}</p>
-          </button>
+      <div className="chat-area">
+        {messages.map((message) => (
+          <ChatMessage key={message.id} message={message} selectedProject={selectedProject} context={context} onDownload={downloadProjectReport} />
         ))}
-      </section>
-    </>
+
+        <div className="assistant-block">
+          <p className="assistant-label">请选择分析项目：</p>
+          <div className="project-chip-row">
+            {projects.map((project) => (
+              <button
+                type="button"
+                className={`project-context-card ${project.id === selectedProject.id ? 'active' : ''}`}
+                key={project.id}
+                onClick={() => onProjectChange(project.id)}
+              >
+                <strong>{project.name}</strong>
+                <span>{project.location} · {project.health}</span>
+              </button>
+            ))}
+            <span className="more-projects">&gt;</span>
+          </div>
+        </div>
+
+        <div className="assistant-block">
+          <p className="assistant-label">你可以这样问：</p>
+          <div className="prompt-grid">
+            {rootAssistantSuggestions.map((suggestion) => (
+              <button type="button" key={suggestion} onClick={() => ask(suggestion)}>
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isThinking && (
+          <div className="chat-message assistant">
+            <div className="bubble thinking">正在分析 {selectedProject.name} 近期风险数据...</div>
+          </div>
+        )}
+      </div>
+
+      <form
+        className="chat-input-bar"
+        onSubmit={(event) => {
+          event.preventDefault();
+          ask(inputValue);
+        }}
+      >
+        <input value={inputValue} onChange={(event) => setInputValue(event.target.value)} placeholder="问问项目风险原因..." />
+        <button type="submit">发送</button>
+      </form>
+    </section>
   );
+}
+
+function ChatMessage({ message, selectedProject, context, onDownload }) {
+  if (message.type === 'welcome') {
+    return (
+      <div className="chat-message assistant">
+        <div className="bubble">
+          <p>{message.content}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (message.type === 'report') {
+    return (
+      <div className="chat-message assistant">
+        <div className="bubble report-card">
+          <h3>{selectedProject.name}风险复盘报告</h3>
+          <ReportPreview context={context} />
+          <div className="report-actions">
+            <button type="button">查看报告</button>
+            <button type="button" onClick={onDownload}>下载报告</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (message.role === 'user') {
+    return (
+      <div className="chat-message user">
+        <div className="bubble">{message.content}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="chat-message assistant">
+      <div className="bubble structured-answer">
+        <p>你好，我正在分析{selectedProject.name}近期风险数据。</p>
+        <h4>1. 项目风险总结</h4>
+        <ul>
+          {context.summary.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <h4>2. 可能原因分析</h4>
+        {context.causes.map((cause, index) => (
+          <div className="answer-cause" key={cause.title}>
+            <strong>原因{index + 1}：{cause.title}</strong>
+            <span>分析依据：</span>
+            <ul>
+              {cause.evidence.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <h4>3. 改进建议</h4>
+        <ul>
+          {context.suggestions.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+        <div className="warning-card">⚠ AI分析结果基于历史风险数据推测，仅供参考</div>
+      </div>
+    </div>
+  );
+}
+
+function ReportPreview({ context }) {
+  return (
+    <div className="report-preview">
+      <p>包含风险总结、根因分析、分析依据与改进建议。</p>
+      <ul>
+        <li>{context.summary[0]}</li>
+        <li>主要根因：{context.causes[0]?.title}</li>
+        <li>建议：{context.suggestions[0]}</li>
+      </ul>
+    </div>
+  );
+}
+
+function buildRootCauseAnswer(question, selectedProject, context) {
+  const wantsReport = question.includes('报告') || question.includes('复盘');
+  return {
+    id: `assistant-${Date.now()}`,
+    role: 'assistant',
+    type: wantsReport ? 'report' : 'analysis',
+    projectId: selectedProject.id,
+    content: context.summary.join(''),
+  };
+}
+
+function buildReportText(selectedProject, context) {
+  return `${selectedProject.name}风险复盘报告\n\n风险总结\n${context.summary.map((item) => `- ${item}`).join('\n')}\n\n根因分析\n${context.causes
+    .map((cause, index) => `${index + 1}. ${cause.title}\n分析依据：\n${cause.evidence.map((item) => `- ${item}`).join('\n')}`)
+    .join('\n\n')}\n\n改进建议\n${context.suggestions.map((item) => `- ${item}`).join('\n')}\n\n⚠ AI分析结果基于历史风险数据推测，仅供参考`;
 }
 
 function MetricCard({ label, value }) {
@@ -1219,131 +1369,6 @@ function getSingleRiskCause(risk) {
     },
   };
   return map[risk.type] ?? map.进度;
-}
-
-function RootCauseDrawer({ cause, onClose, onAnalyze }) {
-  if (!cause) return null;
-  return (
-    <div className="drawer-layer" role="dialog" aria-modal="true">
-      <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭根因详情" />
-      <section className="drawer">
-        <div className="drawer-grip" />
-        <div className="drawer-head">
-          <div>
-            <span className="tag" style={{ '--tag-color': '#1d4ed8', '--tag-bg': '#e8f0ff' }}>
-              {cause.issueType}
-            </span>
-            <span className="tag" style={{ '--tag-color': '#b45309', '--tag-bg': '#fff5db' }}>
-              高频 {cause.count}次
-            </span>
-          </div>
-          <button type="button" className="icon-button small" onClick={onClose} aria-label="关闭">
-            <X size={18} />
-          </button>
-        </div>
-        <h3>{cause.name}</h3>
-        <div className="ai-note">AI推测，仅供参考</div>
-        <DetailBlock title="问题描述" body={`${cause.name}在${cause.stage}反复出现，${cause.impact}。`} />
-        <div className="detail-block">
-          <h4>发生趋势</h4>
-          <div className="spark-bars">
-            {cause.trend.map((value, index) => (
-              <span key={`${value}-${index}`} style={{ height: `${20 + value * 7}px` }} />
-            ))}
-          </div>
-        </div>
-        <DetailBlock title="涉及角色" body={cause.roles.join(' / ')} />
-        <DetailBlock title="AI可能原因" body={cause.rootCause} />
-        <div className="message-list">
-          <h4>分析依据（关联消息/事件）</h4>
-          {cause.evidence.map((item) => (
-            <p key={item}>{item}</p>
-          ))}
-        </div>
-        <div className="drawer-actions">
-          <button type="button" className="action-button primary" onClick={onAnalyze}>
-            AI分析
-          </button>
-          <button type="button" className="action-button ghost" onClick={onClose}>
-            返回
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function AIReportDrawer({ cause, onClose }) {
-  if (!cause) return null;
-  function downloadReport() {
-    const report = `${cause.name} - AI根因分析报告\n\nAI分析结果基于历史数据和事件模式推测，仅供参考。\n\n问题概览\n发生次数：${cause.count}次\n影响范围：${cause.scope}\n涉及阶段：${cause.stage}\n\nAI推测原因\n${cause.reasons.map((reason, index) => `${index + 1}. ${reason.title}\n${reason.detail}`).join('\n\n')}\n\n改进建议\n${cause.suggestions.map((item) => `- ${item}`).join('\n')}`;
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${cause.name}-AI根因分析报告.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <div className="drawer-layer" role="dialog" aria-modal="true">
-      <button className="drawer-mask" type="button" onClick={onClose} aria-label="关闭AI分析报告" />
-      <section className="drawer report-drawer">
-        <div className="drawer-grip" />
-        <div className="drawer-head">
-          <div>
-            <h3>{cause.name} - AI根因分析报告</h3>
-          </div>
-          <button type="button" className="icon-button small" onClick={onClose} aria-label="关闭">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="warning-card">⚠ AI分析结果基于历史数据和事件模式推测，仅供参考</div>
-        <div className="detail-block">
-          <h4>问题概览</h4>
-          <div className="report-metrics">
-            <span>
-              <b>{cause.count}次</b>
-              发生次数
-            </span>
-            <span>
-              <b>{cause.scope}</b>
-              影响范围
-            </span>
-            <span>
-              <b>{cause.stage}</b>
-              涉及阶段
-            </span>
-          </div>
-        </div>
-        <div className="detail-block">
-          <h4>AI推测原因</h4>
-          {cause.reasons.map((reason, index) => (
-            <div className="reason-item" key={reason.title}>
-              <strong>原因{index + 1}：{reason.title}</strong>
-              <p>{reason.detail}</p>
-            </div>
-          ))}
-        </div>
-        <div className="message-list">
-          <h4>改进建议</h4>
-          {cause.suggestions.map((item) => (
-            <p key={item}>{item}</p>
-          ))}
-        </div>
-        <div className="drawer-actions">
-          <button type="button" className="action-button primary" onClick={downloadReport}>
-            <Download size={15} />
-            下载分析报告
-          </button>
-          <button type="button" className="action-button ghost" onClick={onClose}>
-            返回
-          </button>
-        </div>
-      </section>
-    </div>
-  );
 }
 
 function DetailBlock({ title, body }) {
