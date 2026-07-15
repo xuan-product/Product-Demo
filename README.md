@@ -1,4 +1,4 @@
-# 观澜风险识别 APP Demo
+#  APP Demo
 
 基于 React + Vite 实现的移动端 APP 风格风险识别原型。
 
